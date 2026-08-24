@@ -1,5 +1,89 @@
-node_modules
-dist
-*.local
-.DS_Store
+# =========================
+# Node.js
+# =========================
+node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# Build
+# =========================
+dist/
+build/
+.vite/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# IDE / Editors
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+*.tmp
+
+# =========================
+# Coverage
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# Database
+# =========================
+*.sql
+*.sqlite
+*.sqlite3
+
+# =========================
+# Uploaded files
+# =========================
+uploads/
+storage/
+public/uploads/
+
+# =========================
+# Excel / generated files
+# =========================
+*.xlsx
+*.xls
+*.csv
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
+
+# =========================
+# Sequelize
+# =========================
+.sequelizerc.local
