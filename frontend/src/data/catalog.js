@@ -52,6 +52,13 @@ export const NAV = [
       { id: 14, title: 'Vista y Exportación' },
     ],
   },
+  {
+    id: 'm5', num: 5, title: 'Extracción y Carga',
+    screens: [
+      { id: 15, title: 'Extracción de Documentos' },
+      { id: 16, title: 'Completar a Mano' },
+    ],
+  },
 ]
 
 /** Pasos del stepper del módulo 1. */

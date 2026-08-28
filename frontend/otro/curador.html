@@ -1,0 +1,371 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>PADEP · completar a mano</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root {
+    --surface:#fbfbfc; --panel:#fff; --panel-2:#f4f5f8; --ink:#171a20;
+    --ink-2:#4a5058; --ink-3:#767d87; --linea:#e3e5ea; --acento:#4753c6;
+    --ok:#0b8f86; --curso:#b4651f; --mal:#b3261e;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+    --sans:system-ui,"Segoe UI",Roboto,sans-serif;
+  }
+  /* Tema claro fijo, como el resto de las páginas del proyecto. */
+  :root{color-scheme:light}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--surface);color:var(--ink);
+       font-family:var(--sans);line-height:1.5}
+  .envoltorio{max-width:64rem;margin:0 auto;padding:1.5rem 1rem 4rem}
+  h1{font-size:1.5rem;margin:0 0 .25rem}
+  h2{font-size:1.05rem;margin:0 0 .5rem}
+  .sub{color:var(--ink-2);font-size:.9rem;margin:.25rem 0}
+  .tarjeta{background:var(--panel);border:1px solid var(--linea);
+           border-radius:10px;padding:1rem;margin-bottom:1rem}
+  label{display:block;font-size:.72rem;letter-spacing:.04em;
+        text-transform:uppercase;color:var(--ink-3);margin-bottom:.2rem}
+  select,input{width:100%;padding:.45rem .55rem;border:1px solid var(--linea);
+        border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
+  input:focus,select:focus{outline:2px solid var(--acento);outline-offset:-1px}
+  button{padding:.5rem .9rem;border:1px solid transparent;border-radius:6px;
+         background:var(--acento);color:#fff;cursor:pointer;font:inherit}
+  button.leve{background:transparent;color:var(--ink-2);
+              border-color:var(--linea)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .fila{display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end}
+  .num{font-family:var(--mono);font-size:.8rem;color:var(--ink-2)}
+  .barra{height:8px;background:var(--panel-2);border-radius:99px;
+         overflow:hidden;margin:.5rem 0}
+  .barra i{display:block;height:100%;background:var(--ok);border-radius:99px;
+           transition:width .3s}
+  .tarea{border:1px solid var(--linea);border-radius:10px;padding:.9rem;
+         margin-bottom:.75rem;background:var(--panel)}
+  .tarea.hecha{background:color-mix(in srgb,var(--ok) 6%,var(--panel));
+               border-color:color-mix(in srgb,var(--ok) 35%,var(--linea))}
+  .cabeza{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;
+          margin-bottom:.5rem}
+  .quien{font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:.35rem;padding:.1rem .5rem;
+        border-radius:99px;font-size:.75rem;background:var(--panel-2);
+        color:var(--ink-2)}
+  .chip.revisar{background:color-mix(in srgb,var(--curso) 14%,transparent);
+                color:var(--curso)}
+  .chip.falta{background:color-mix(in srgb,var(--mal) 12%,transparent);
+              color:var(--mal)}
+  .chip.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);
+           color:var(--ok)}
+  .campos{display:grid;gap:.6rem;
+          grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))}
+  .campo.porfila{grid-column:1/-1}
+  .dequien{font-size:.8rem;font-weight:600;color:var(--ink-2);
+           margin:.45rem 0 .15rem}
+  .campo .actual{font-family:var(--mono);font-size:.75rem;color:var(--ink-3);
+                 margin-top:.2rem;overflow-wrap:anywhere}
+  .aviso{padding:.5rem .7rem;border-radius:6px;font-size:.85rem;margin:.4rem 0}
+  .aviso.mal{background:color-mix(in srgb,var(--mal) 12%,transparent);
+             color:var(--mal)}
+  .aviso.nota{background:var(--panel-2);color:var(--ink-2)}
+  .vacio{color:var(--ink-3);font-style:italic}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th,td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--linea);
+        vertical-align:top}
+  th{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;
+     color:var(--ink-3)}
+  .pegado{position:sticky;top:0;background:var(--surface);padding:.6rem 0;
+          border-bottom:1px solid var(--linea);z-index:5}
+  a{color:var(--acento)}
+</style>
+<div class="envoltorio">
+  <header>
+    <h1>Completar a mano</h1>
+    <p class="sub">Lo que ni el OCR ni la nómina pueden resolver: hay que abrir
+      el PDF en la página que se indica y escribir lo que dice el papel.
+      <a href="/">volver a extracción</a></p>
+  </header>
+
+  <div class="tarjeta">
+    <div class="fila">
+      <div style="flex:2 1 16rem">
+        <label for="corte">Corte</label>
+        <select id="corte"></select>
+      </div>
+      <div style="flex:1 1 10rem">
+        <label for="filtro">Documento</label>
+        <select id="filtro"><option value="">todos</option></select>
+      </div>
+      <div style="flex:0 0 auto">
+        <button id="aplicar" type="button">Volcar a la entrega</button>
+      </div>
+    </div>
+    <div class="barra"><i id="progreso" style="width:0"></i></div>
+    <div class="sub" id="resumen">Cargando…</div>
+    <div class="aviso mal" id="error" hidden></div>
+  </div>
+
+  <section id="listaTareas"></section>
+
+  <section id="cajaSinRegistro" hidden>
+    <h2>Sin registro</h2>
+    <p class="sub">Estas personas están en la nómina y no tienen
+      <strong>ninguna</strong> fila en el documento. Hay que abrir la página que
+      se indica: casi siempre el registro está y lo que falta es poder
+      identificarlo. Si al mirarlo la fila está ahí, se escribe aquí y entra en
+      la entrega. La identidad no se teclea —nombre, municipio y carrera salen de
+      la nómina—, solo lo que trae el papel.</p>
+    <div id="listaSinRegistro"></div>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const escapa = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// El corte se comparte con la pantalla de extracción: es el mismo trabajo.
+let CORTE = localStorage.getItem('padep.corte') || '';
+let DATOS = null;
+
+// Una tarea está hecha cuando todos sus campos tienen algo escrito. Las de solo
+// revisión se dan por hechas al confirmarlas: puede que el papel esté bien y no
+// haya nada que cambiar.
+const hecha = t => t.campos.length > 0
+  && t.campos.every(c => c.casillas.every(k => k.escrito));
+
+async function cargaCortes() {
+  const cortes = await (await fetch('/cortes')).json();
+  if (!cortes.some(c => c.id === CORTE)) CORTE = cortes.length ? cortes[0].id : '';
+  $('#corte').innerHTML = cortes.length
+    ? cortes.map(c => `<option value="${c.id}"${c.id === CORTE ? ' selected' : ''}
+        >cohorte ${escapa(c.cohorte)} &middot; semestre ${c.semestre} &middot; corte ${c.corte}</option>`).join('')
+    : '<option value="">&mdash; no hay cortes &mdash;</option>';
+}
+
+async function carga() {
+  if (!CORTE) { $('#resumen').textContent = 'No hay ningún corte.'; return; }
+  const d = await (await fetch(`/cortes/${CORTE}/pendientes`)).json();
+  DATOS = d;
+  if (!d.listo) {
+    $('#listaTareas').innerHTML = '';
+    $('#resumen').textContent = d.motivo;
+    $('#aplicar').disabled = true;
+    return;
+  }
+  $('#filtro').innerHTML = '<option value="">todos</option>'
+    + d.documentos.map(x => `<option>${escapa(x)}</option>`).join('');
+  pinta();
+  pintaSinRegistro(d.sin_registro);
+}
+
+function pinta() {
+  const d = DATOS;
+  const doc = $('#filtro').value;
+  const ts = d.tareas.filter(t => !doc || t.documento === doc);
+  pintaResumen();
+
+  $('#listaTareas').innerHTML = ts.length ? ts.map(t => `
+    <article class="tarea ${hecha(t) ? 'hecha' : ''}" data-id="${t.id}">
+      <div class="cabeza">
+        <span class="quien">${escapa(t.quien)}</span>
+        <span class="chip">${escapa(t.documento)}</span>
+        <span class="chip">página ${escapa(t.pagina)}</span>
+        <span class="num">${escapa(t.donde)}</span>
+        ${hecha(t) ? '<span class="chip ok">completa</span>' : ''}
+      </div>
+      <div class="num">
+        ${t.pdf_url
+          ? `<a href="${t.pdf_url}" target="_blank" rel="noopener"
+               >ver la página ${escapa(t.pagina)} &rarr;</a>
+             &nbsp;<span>${escapa(t.pdf)}</span>`
+          : escapa(t.pdf) + ' <span class="vacio">(son dos PDF: la página no '
+            + 'dice de cuál)</span>'}
+      </div>
+      ${t.revisar ? `<div class="aviso nota">No cuadra: ${escapa(t.revisar)}</div>` : ''}
+      <div class="campos">
+        ${t.campos.map(c => `
+          <div class="campo${c.por_fila ? ' porfila' : ''}">
+            <label>
+              ${escapa(c.nombre)}
+              <span class="chip ${c.motivo}">${c.motivo}</span>
+              ${c.por_fila ? '<span class="chip">uno por fila</span>' : ''}
+            </label>
+            ${c.casillas.map(k => `
+              ${k.quien ? `<div class="dequien">${escapa(k.quien)}</div>` : ''}
+              <input value="${escapa(k.escrito)}"
+                     placeholder="${escapa(c.pista)}"
+                     data-archivo="${escapa(t.archivo)}"
+                     data-filas="${escapa(k.filas)}"
+                     data-campo="${escapa(c.nombre)}">
+              <div class="actual">el papel dice: ${
+                k.actual ? escapa(k.actual) : '<span class="vacio">nada</span>'}</div>
+            `).join('')}
+            ${c.nota ? `<div class="actual">${escapa(c.nota)}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </article>`).join('')
+    : '<p class="vacio">No queda nada por completar en este documento.</p>';
+}
+
+// Una persona sin registro está "escrita" cuando todas las casillas de su alta
+// tienen algo. A medio escribir no cuenta: media fila no es una fila.
+const escrita = x => x.campos.length > 0 && !x.anulada
+  && x.campos.every(c => String(c.escrito).trim());
+
+function pintaSinRegistro(sr) {
+  $('#cajaSinRegistro').hidden = !sr.length;
+  $('#listaSinRegistro').innerHTML = sr.map(x => `
+    <article class="tarea ${escrita(x) ? 'hecha' : ''}"
+             data-carne="${escapa(x.carne)}" data-archivo="${escapa(x.archivo)}">
+      <div class="cabeza">
+        <span class="quien">${escapa(x.nombre)}</span>
+        <span class="num">${escapa(x.carne)}</span>
+        <span class="chip">${escapa(x.documento)}</span>
+        <span class="num">${escapa(x.donde)}</span>
+        ${x.anulada ? '<span class="chip">anulada</span>'
+                    : escrita(x) ? '<span class="chip ok">fila escrita</span>'
+                                 : '<span class="chip falta">sin registro</span>'}
+      </div>
+      <div class="num">
+        ${x.pdf_url
+          ? `<a href="${x.pdf_url}" target="_blank" rel="noopener"
+               >ver la página ${escapa(x.paginas)} &rarr;</a>`
+          : `páginas ${escapa(x.paginas) || '—'}`}
+        &nbsp;<span>${escapa(x.pdf)}</span>
+      </div>
+      ${x.que_hacer ? `<div class="aviso nota">${escapa(x.que_hacer)}${
+          x.posible ? ' — ' + escapa(x.posible) : ''}</div>` : ''}
+      ${x.campos.length ? `
+        <div class="campos">
+          ${x.campos.map(c => `
+            <div class="campo">
+              <label>${escapa(c.nombre)}</label>
+              <input value="${escapa(c.escrito)}" placeholder="${escapa(c.pista)}"
+                     data-campo="${escapa(c.nombre)}" ${x.anulada ? 'disabled' : ''}>
+            </div>`).join('')}
+        </div>
+        <div class="fila" style="margin-top:.6rem">
+          <button type="button" class="leve" data-anular="${x.anulada ? 'no' : 'si'}"
+            >${x.anulada ? 'deshacer la anulación' : 'anular esta alta'}</button>
+        </div>`
+        : `<div class="aviso nota">${escapa(x.motivo)}</div>`}
+    </article>`).join('');
+}
+
+// Se guarda al salir del campo, no con un botón: son decenas de celdas y un
+// "guardar" por tarea se olvida. Cada celda viaja sola al servidor y queda en
+// correcciones.csv en el acto, así cerrar la pestaña no pierde nada.
+$('#listaTareas').addEventListener('change', async ev => {
+  const e = ev.target;
+  if (e.tagName !== 'INPUT') return;
+  const cuerpo = new FormData();
+  cuerpo.append('archivo', e.dataset.archivo);
+  cuerpo.append('filas', e.dataset.filas);
+  cuerpo.append('campo', e.dataset.campo);
+  cuerpo.append('valor', e.value);
+  const err = $('#error'); err.hidden = true;
+  const r = await fetch(`/cortes/${CORTE}/correcciones`,
+                        {method: 'PUT', body: cuerpo});
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    err.textContent = d.detail || `No se pudo guardar (${r.status})`;
+    err.hidden = false;
+    return;
+  }
+  // se refleja en el modelo sin recargar, para no perder el foco de escritura
+  const t = DATOS.tareas.find(x => x.id === e.closest('.tarea').dataset.id);
+  const c = t.campos.find(x => x.nombre === e.dataset.campo);
+  const k = c.casillas.find(x => x.filas === e.dataset.filas);
+  k.escrito = e.value.trim();
+  DATOS.correcciones = (await r.json()).correcciones;
+  e.closest('.tarea').classList.toggle('hecha', hecha(t));
+  pintaResumen();
+});
+
+// Las altas se guardan igual que las celdas: cada casilla al salir del campo.
+// La llave es el carné, no el número de fila — esta persona no tiene fila.
+$('#listaSinRegistro').addEventListener('change', async ev => {
+  const e = ev.target;
+  if (e.tagName !== 'INPUT') return;
+  const caja = e.closest('.tarea');
+  await guardaAlta(caja, e.dataset.campo, e.value);
+});
+
+$('#listaSinRegistro').addEventListener('click', async ev => {
+  const b = ev.target.closest('[data-anular]');
+  if (!b) return;
+  const caja = b.closest('.tarea');
+  await guardaAlta(caja, 'ANULADA', b.dataset.anular === 'si' ? 'si' : '');
+  carga();
+});
+
+async function guardaAlta(caja, campo, valor) {
+  const cuerpo = new FormData();
+  cuerpo.append('archivo', caja.dataset.archivo);
+  cuerpo.append('carne', caja.dataset.carne);
+  cuerpo.append('campo', campo);
+  cuerpo.append('valor', valor);
+  const err = $('#error'); err.hidden = true;
+  const r = await fetch(`/cortes/${CORTE}/altas`, {method: 'PUT', body: cuerpo});
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    err.textContent = d.detail || `No se pudo guardar (${r.status})`;
+    err.hidden = false;
+    return false;
+  }
+  // un alta solo entra en la entrega rehaciéndola: el botón lo dice desde ya
+  DATOS.altas_sin_reflejar = true;
+  const x = DATOS.sin_registro.find(y => y.carne === caja.dataset.carne);
+  if (x && campo !== 'ANULADA') {
+    const c = x.campos.find(y => y.nombre === campo);
+    if (c) c.escrito = valor.trim();
+    caja.classList.toggle('hecha', escrita(x));
+  }
+  pintaResumen();
+  return true;
+}
+
+function pintaResumen() {
+  const d = DATOS;
+  const listas = d.tareas.filter(hecha).length;
+  $('#progreso').style.width =
+    (d.tareas.length ? Math.round(100 * listas / d.tareas.length) : 0) + '%';
+  $('#resumen').innerHTML =
+    `<strong>${listas} de ${d.tareas.length}</strong> tareas completas`
+    + ` &middot; ${d.correcciones} celda(s) escritas`
+    + (d.sin_registro.length
+        ? ` &middot; ${d.sin_registro.length} persona(s) sin registro (abajo)` : '');
+  // Un alta entra antes del cruce con la nómina, así que no basta con volcarla
+  // sobre la entrega hecha: hay que rehacerla o la persona seguiría figurando
+  // como sin registro teniendo ya su fila.
+  const rehacer = d.altas_sin_reflejar;
+  $('#aplicar').textContent = rehacer ? 'Rehacer la entrega' : 'Volcar a la entrega';
+  $('#aplicar').disabled = !(d.correcciones || rehacer);
+  $('#aplicar').title = rehacer
+    ? 'Hay filas dadas de alta: la entrega se rehace entera (tarda unos minutos)'
+    : d.correcciones ? '' : 'Todavía no se ha escrito ninguna corrección';
+}
+
+$('#corte').addEventListener('change', () => {
+  CORTE = $('#corte').value;
+  localStorage.setItem('padep.corte', CORTE);
+  carga();
+});
+$('#filtro').addEventListener('change', pinta);
+
+$('#aplicar').addEventListener('click', async () => {
+  const err = $('#error'); err.hidden = true;
+  $('#aplicar').disabled = true;
+  const r = await fetch(`/cortes/${CORTE}/correcciones/aplicar`, {method: 'POST'});
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    err.textContent = d.detail || `Error ${r.status}`;
+    err.hidden = false;
+    $('#aplicar').disabled = false;
+    return;
+  }
+  err.className = 'aviso nota';
+  err.textContent = 'Volcando… el avance se ve en la pantalla de extracción.';
+  err.hidden = false;
+  setTimeout(carga, 4000);
+});
+
+cargaCortes().then(carga);
+</script>

@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PADEP · extracción</title>
+    <style>
+        :root {
+            --surface:#fbfbfc; --panel:#fff; --panel-2:#f4f5f8; --ink:#171a20;
+            --ink-2:#4a5058; --ink-3:#767d87; --linea:#e3e5ea; --acento:#4753c6;
+            --ok:#0b8f86; --curso:#b4651f; --mal:#b3261e;
+            --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+            --sans:system-ui,"Segoe UI",Roboto,sans-serif;
+        }
+        /* Tema claro fijo, como el resto de las páginas del proyecto. El modo oscuro
+           se probó y se descartó por petición explícita; `color-scheme:light` evita
+           además que el navegador pinte de oscuro los controles nativos. */
+        :root{color-scheme:light}
+        *{box-sizing:border-box}
+        body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+            font-size:15px;line-height:1.55}
+        .caja{max-width:66rem;margin:0 auto;padding:2.5rem 1.25rem 4rem;
+            display:flex;flex-direction:column;gap:2rem}
+        h1{font-size:1.6rem;margin:0;letter-spacing:-.01em}
+        h2{font-size:1.05rem;margin:0 0 .8rem;font-weight:600}
+        .sub{color:var(--ink-3);font-size:.88rem;margin:.3rem 0 0}
+        .tarjeta{background:var(--panel);border:1px solid var(--linea);border-radius:10px;
+            padding:1.15rem 1.25rem}
+        label{display:block;font-size:.8rem;color:var(--ink-3);margin-bottom:.3rem;
+            text-transform:uppercase;letter-spacing:.06em}
+        select,input[type=file]{width:100%;padding:.55rem .6rem;border:1px solid var(--linea);
+            border-radius:6px;background:var(--panel-2);color:var(--ink);font:inherit}
+        .fila{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}
+        .fila>div{flex:1 1 14rem;min-width:0}
+        button{font:inherit;padding:.55rem 1rem;border-radius:6px;border:1px solid transparent;
+            background:var(--acento);color:#fff;cursor:pointer}
+        button:hover{filter:brightness(1.08)}
+        button[disabled]{opacity:.5;cursor:not-allowed}
+        button.leve{background:transparent;color:var(--ink-2);border-color:var(--linea);
+            padding:.3rem .6rem;font-size:.82rem}
+        a.desc{display:inline-block;font-family:var(--mono);font-size:.8rem;
+            color:var(--acento);text-decoration:none;border:1px solid var(--linea);
+            border-radius:5px;padding:.2rem .5rem;margin:.2rem .3rem 0 0}
+        a.desc:hover{border-color:var(--acento)}
+        .aviso{margin-top:.8rem;font-size:.85rem;padding:.5rem .7rem;border-radius:6px}
+        .aviso.mal{background:color-mix(in srgb,var(--mal) 12%,transparent);color:var(--mal)}
+        .aviso.bien{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok)}
+        .desliza{overflow-x:auto}
+        table{width:100%;border-collapse:collapse;min-width:34rem}
+        /* El nombre del PDF puede ser larguísimo; se recorta con puntos suspensivos y
+           el nombre entero queda en el title, en vez de estirar la tabla. */
+        td .archivo{display:block;max-width:17rem;overflow:hidden;text-overflow:ellipsis;
+            white-space:nowrap}
+        td.salidas{max-width:15rem}
+        .fase{max-width:13rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+            color:var(--curso)}
+        th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;
+            color:var(--ink-3);padding:0 .6rem .5rem 0;border-bottom:1px solid var(--linea)}
+        td{padding:.7rem .6rem .7rem 0;border-bottom:1px solid var(--linea);
+            vertical-align:top;font-size:.88rem}
+        .chip{display:inline-flex;align-items:center;gap:.35rem;font-size:.75rem;
+            font-weight:600;padding:.15rem .55rem;border-radius:99px;white-space:nowrap;
+            background:var(--panel-2);color:var(--ink-2)}
+        .chip::before{content:"";width:.5rem;height:.5rem;border-radius:99px;background:currentColor}
+        .chip.terminado{color:var(--ok)} .chip.extrayendo{color:var(--curso)}
+        .chip.fallido,.chip.cancelado{color:var(--mal)}
+        .barra{height:6px;background:var(--panel-2);border-radius:99px;overflow:hidden;
+            margin-top:.45rem;max-width:11rem}
+        .barra i{display:block;height:100%;background:var(--curso);border-radius:99px;
+            transition:width .4s ease}
+        .num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.8rem;
+            color:var(--ink-3)}
+        pre{background:var(--panel-2);border-radius:6px;padding:.7rem;overflow:auto;
+            max-height:16rem;font-family:var(--mono);font-size:.76rem;margin:.6rem 0 0;
+            white-space:pre-wrap;color:var(--ink-2)}
+        .vacio{color:var(--ink-3);font-size:.9rem}
+        @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+    </style>
+</head>
+<body>
+<div class="caja">
+
+    <header>
+        <h1>Extracción PADEP/D</h1>
+        <p class="sub">Sube un PDF escaneado y descarga el Excel. Un trabajo a la vez:
+            cada extracción ocupa todos los núcleos.
+            <a href="/curador">completar a mano &rarr;</a></p>
+    </header>
+
+    <section class="tarjeta">
+        <h2>Corte</h2>
+        <p class="sub">Todo lo que se sube y todo lo que sale vive en la carpeta de
+            su corte. Hay que elegirlo antes de subir nada.</p>
+        <div class="fila">
+            <div style="flex:2 1 16rem">
+                <label for="corte">Cohorte &middot; semestre &middot; corte</label>
+                <select id="corte"></select>
+            </div>
+            <div style="flex:0 0 auto">
+                <button id="nuevoCorte" type="button" class="leve">nuevo corte&hellip;</button>
+            </div>
+        </div>
+        <form id="formCorte" hidden style="margin-top:.6rem">
+            <div class="fila">
+                <div><label for="nc_cohorte">Cohorte</label>
+                    <input id="nc_cohorte" required placeholder="36"></div>
+                <div><label for="nc_semestre">Semestre (1-4)</label>
+                    <input id="nc_semestre" type="number" min="1" max="4" value="1" required></div>
+                <div><label for="nc_corte">Corte</label>
+                    <input id="nc_corte" type="number" min="1" value="1" required></div>
+                <div style="flex:0 0 auto"><button type="submit">Crear</button></div>
+            </div>
+            <div class="aviso mal" id="errorCorte" hidden></div>
+        </form>
+        <div class="sub" id="estadoCorte" style="margin-top:.6rem"></div>
+    </section>
+
+    <section class="tarjeta" id="tarjetaExtraccion">
+        <h2>Nueva extracci&oacute;n</h2>
+        <!-- En el servidor no se extrae: el OCR de aqui no da el mismo texto y
+             mezclar las dos lecturas dentro de un corte descoloca las correcciones,
+             que van por numero de fila. Se avisa ANTES de que nadie elija un
+             archivo, porque el PDF se sube entero —140 MB— antes de que el servidor
+             pueda rechazarlo. -->
+        <div class="aviso" id="sinExtraccion" hidden>
+            Esta instalaci&oacute;n <strong>no extrae</strong>: la extracci&oacute;n se
+            hace en la m&aacute;quina de siempre y aqu&iacute; se sincronizan
+            <code>pdfs/</code> y <code>datos/</code>. El OCR de este servidor no da el
+            mismo texto, y un corte tiene que leerse entero en una sola
+            m&aacute;quina o las correcciones dejan de cuadrar.
+            Todo lo dem&aacute;s &mdash;entrega, curaci&oacute;n y carga&mdash; s&iacute; se hace aqu&iacute;.
+        </div>
+        <form id="formulario">
+            <div class="fila">
+                <div>
+                    <label for="tipo">Documento</label>
+                    <select id="tipo" required></select>
+                </div>
+                <div id="ranuras"></div>
+                <div style="flex:0 0 auto">
+                    <button id="enviar" type="submit">Extraer</button>
+                </div>
+            </div>
+            <div class="sub" id="pista"></div>
+            <div class="aviso mal" id="error" hidden></div>
+            <div class="barra" id="barraSubida" hidden style="max-width:none"><i style="width:0"></i></div>
+        </form>
+    </section>
+
+    <section class="tarjeta">
+        <h2>Entrega</h2>
+        <p class="sub">Con los cinco documentos extra&iacute;dos y la n&oacute;mina puesta: se
+            curan y auditan juntos. Sale el Excel de entrega, qui&eacute;n falta y d&oacute;nde
+            buscarlo. Despu&eacute;s, la carga a la base.</p>
+        <form id="formNomina">
+            <div class="fila">
+                <div>
+                    <label for="nomina">N&oacute;mina del pago (.xlsx)</label>
+                    <input type="file" id="nomina" accept=".xlsx" required>
+                </div>
+                <div style="flex:0 0 auto">
+                    <button id="enviarNomina" type="submit" class="leve">Subir n&oacute;mina</button>
+                </div>
+            </div>
+        </form>
+        <div class="fila" style="margin-top:.6rem">
+            <div style="flex:0 0 auto">
+                <button id="enviarEntrega" type="button">Curar y auditar</button>
+            </div>
+            <div style="flex:1 1 auto">
+        <span class="sub">Despu&eacute;s, lo que ni el OCR ni la n&oacute;mina resuelven:
+          <a href="/curador">completar a mano &rarr;</a></span>
+            </div>
+        </div>
+
+        <h2 style="margin-top:1.2rem">Cargar a la base</h2>
+        <p class="sub">Las cuatro etiquetas son opcionales: el papel dice
+            &laquo;NOVENO BIMESTRE&raquo; y la n&oacute;mina &laquo;6to pago&raquo;, y con cuatro
+            semestres esos n&uacute;meros no cierran, as&iacute; que no se deducen del corte.
+            Lo que se deje en blanco entra vac&iacute;o y se puede rellenar despu&eacute;s.</p>
+        <div class="fila">
+            <div style="flex:2 1 12rem">
+                <label for="et_bimestre">Bimestre</label>
+                <input id="et_bimestre" placeholder="NOVENO BIMESTRE"></div>
+            <div style="flex:1 1 6rem">
+                <label for="et_pago">Pago n.&ordm;</label>
+                <input id="et_pago" inputmode="numeric" placeholder="6"></div>
+            <div style="flex:1 1 6rem">
+                <label for="et_anio">A&ntilde;o del pago</label>
+                <input id="et_anio" inputmode="numeric" placeholder="2026"></div>
+            <div style="flex:1 1 9rem">
+                <label for="et_cohorte">Nombre de la cohorte</label>
+                <input id="et_cohorte" placeholder="Onceava"></div>
+            <div style="flex:0 0 auto">
+                <button id="enviarCarga" type="button" class="leve">Cargar a la base</button>
+            </div>
+        </div>
+        <div class="aviso mal" id="errorEntrega" hidden></div>
+    </section>
+
+    <section>
+        <h2>Trabajos</h2>
+        <div class="tarjeta desliza" style="padding:1.15rem 1.25rem .3rem">
+            <table>
+                <thead><tr>
+                    <th>Documento</th><th>Estado</th><th>Avance</th><th>Salidas</th><th></th>
+                </tr></thead>
+                <tbody id="cuerpo"><tr><td colspan="5" class="vacio">Cargando…</td></tr></tbody>
+            </table>
+        </div>
+        <pre id="registro" hidden></pre>
+    </section>
+
+</div>
+
+<script>
+    const $ = s => document.querySelector(s);
+    let TIPOS = {}, viendoRegistro = null;
+    // De cuánto se cortan los envíos. Lo dice el servidor en /ajustes porque el
+    // límite lo pone el proxy que haya delante; 8 MB es el valor si no contesta.
+    let TROZO = 8 * 1024 * 1024;
+
+    const escapa = t => String(t ?? '').replace(/[&<>"]/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    // Cuánto lleva corriendo. Con fases que pasan minutos sin imprimir una página,
+    // el reloj es lo que distingue 'trabajando' de 'colgado'.
+    function transcurrido(desde) {
+        if (!desde) return '';
+        const s = Math.max(0, Math.round((Date.now() - new Date(desde)) / 1000));
+        return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
+    }
+
+    // Si esta instalacion no extrae, el formulario no se enseña: subir 140 MB para
+    // que lo rechacen al final es peor que no ofrecerlo.
+    async function cargaAjustes() {
+        let puede = true;
+        try {
+            const a = await (await fetch('/ajustes')).json();
+            puede = a.extraccion !== false;
+            if (a.trozo_bytes) TROZO = a.trozo_bytes;
+        } catch (e) { /* una instalacion vieja no tiene /ajustes: se deja como estaba */ }
+        $('#sinExtraccion').hidden = puede;
+        $('#formulario').hidden = !puede;
+    }
+
+    async function cargaTipos() {
+        TIPOS = await (await fetch('/tipos')).json();
+        $('#tipo').innerHTML = Object.keys(TIPOS)
+            .map(n => `<option value="${n}">${escapa(n.replace(/_/g, ' '))}</option>`).join('');
+        const pedido = new URLSearchParams(location.search).get('tipo');
+        if (pedido && TIPOS[pedido]) $('#tipo').value = pedido;
+        ajustaPista();
+    }
+
+    // Una ranura por archivo, numeradas y sin nombrar asignatura: las materias
+    // cambian de una cohorte a otra, y el nombre del archivo también. Lo único que
+    // cuenta es el orden, que es como el extractor les aplica su rango de páginas.
+    function ajustaPista() {
+        const d = TIPOS[$('#tipo').value] || {};
+        const n = d.archivos || 1;
+        $('#ranuras').innerHTML = Array.from({length: n}, (_, i) => `
+    <div style="flex:1 1 14rem;min-width:0">
+      <label for="archivo${i}">${n > 1 ? `Listado ${i + 1}` : 'PDF'}</label>
+      <input type="file" id="archivo${i}" class="archivoEntrada"
+             accept="application/pdf,.pdf" required>
+    </div>`).join('');
+        $('#ranuras').style.display = 'contents';
+        $('#pista').textContent = n > 1
+            ? `Sube los ${n} listados en el orden en que vienen. El nombre del archivo da igual.`
+            : `~${d.paginas_tipicas} páginas.`;
+    }
+
+    // El corte manda: sin el no se puede subir nada, porque no habria donde
+    // dejarlo. Se recuerda el elegido para no perderlo en cada refresco de 2 s.
+    let CORTE = localStorage.getItem('padep.corte') || '';
+
+    async function cargaCortes() {
+        const cortes = await (await fetch('/cortes')).json();
+        if (!cortes.some(c => c.id === CORTE)) CORTE = cortes.length ? cortes[0].id : '';
+        $('#corte').innerHTML = cortes.length
+            ? cortes.map(c => `<option value="${c.id}"${c.id === CORTE ? ' selected' : ''}
+        >cohorte ${escapa(c.cohorte)} &middot; semestre ${c.semestre} &middot; corte ${c.corte}</option>`).join('')
+            : '<option value="">&mdash; todavia no hay ninguno &mdash;</option>';
+        pintaEstadoCorte(cortes.find(c => c.id === CORTE));
+    }
+
+    function pintaEstadoCorte(c) {
+        const puedeEntregar = c && !c.falta_para_entregar.length;
+        $('#enviarEntrega').disabled = !puedeEntregar;
+        $('#enviarEntrega').title = puedeEntregar ? '' : 'Todavia falta algo';
+        $('#enviarCarga').disabled = !(c && c.entregado);
+        $('#enviarCarga').title = c && c.entregado ? '' : 'Primero hay que entregar';
+        $('#enviar').disabled = !c;
+        if (!c) { $('#estadoCorte').textContent = 'Crea un corte para empezar.'; return; }
+        const hechos = Object.values(c.documentos).filter(d => d.extraido).length;
+        $('#estadoCorte').innerHTML =
+            `<code>${escapa(c.carpeta)}</code> &middot; ${hechos}/5 documentos extraidos &middot; `
+            + (c.nomina ? `nomina: ${escapa(c.nomina)}` : '<strong>sin nomina</strong>')
+            + (c.falta_para_entregar.length
+                ? `<br>Falta: ${escapa(c.falta_para_entregar.join('; '))}`
+                : '<br>Listo para entregar.');
+    }
+
+    $('#corte').addEventListener('change', () => {
+        CORTE = $('#corte').value;
+        localStorage.setItem('padep.corte', CORTE);
+        cargaCortes();
+    });
+
+    $('#nuevoCorte').addEventListener('click', () => {
+        $('#formCorte').hidden = !$('#formCorte').hidden;
+    });
+
+    $('#formCorte').addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const err = $('#errorCorte'); err.hidden = true;
+        const cuerpo = new FormData();
+        cuerpo.append('cohorte', $('#nc_cohorte').value.trim());
+        cuerpo.append('semestre', $('#nc_semestre').value);
+        cuerpo.append('corte', $('#nc_corte').value);
+        const r = await fetch('/cortes', {method: 'POST', body: cuerpo});
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { err.textContent = d.detail || `Error ${r.status}`; err.hidden = false; return; }
+        CORTE = d.id;
+        localStorage.setItem('padep.corte', CORTE);
+        $('#formCorte').hidden = true;
+        $('#formCorte').reset();
+        cargaCortes();
+    });
+
+    $('#formNomina').addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const err = $('#errorEntrega'); err.hidden = true;
+        const f = $('#nomina').files[0];
+        if (!f || !CORTE) { err.textContent = 'Elige un corte y un .xlsx.'; err.hidden = false; return; }
+        const cuerpo = new FormData();
+        cuerpo.append('archivo', f);
+        $('#enviarNomina').disabled = true;
+        const r = await fetch(`/cortes/${CORTE}/nomina`, {method: 'POST', body: cuerpo});
+        $('#enviarNomina').disabled = false;
+        if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            err.textContent = d.detail || `Error ${r.status}`; err.hidden = false; return;
+        }
+        $('#formNomina').reset();
+        cargaCortes();
+    });
+
+    async function lanza(ruta, boton, cuerpo) {
+        const err = $('#errorEntrega'); err.hidden = true;
+        boton.disabled = true;
+        const r = await fetch(`/cortes/${CORTE}/${ruta}`,
+            cuerpo ? {method: 'POST', body: cuerpo}
+                : {method: 'POST'});
+        if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            err.textContent = d.detail || `Error ${r.status}`; err.hidden = false;
+        }
+        refresca();
+    }
+
+    $('#enviarEntrega').addEventListener('click', () => lanza('entrega', $('#enviarEntrega')));
+    // La carga lee de finales/, no de correcciones.csv. Lo escrito y no volcado lo
+    // rechaza la API; lo que sigue sin completar no, porque puede que nunca llegue
+    // a cero (actas que no estan en el PDF, gente que no aparece) y un hueco entra
+    // como Incidencia y no como dato inventado. Asi que eso se avisa y se confirma.
+    async function avisaPendientes() {
+        let d;
+        try {
+            d = await (await fetch(`/cortes/${CORTE}/pendientes`)).json();
+        } catch (e) {
+            return true;  // si no se puede saber, que decida la API
+        }
+        if (!d.listo) return true;
+        const falta = [];
+        if (d.sin_completar) falta.push(`${d.sin_completar} tarea(s) sin completar`);
+        if (d.sin_registro_abiertos)
+            falta.push(`${d.sin_registro_abiertos} persona(s) sin registro`);
+        if (!falta.length) return true;
+        return confirm([
+            `Quedan ${falta.join(' y ')} en el curador.`,
+            'La carga entra igual: lo que falte queda como incidencia en la base, '
+            + 'no como dato. Puedes completar y volver a cargar (se rehace el corte '
+            + 'entero, no duplica).',
+            '¿Cargar de todas formas?',
+        ].join('\n\n'));
+    }
+
+    $('#enviarCarga').addEventListener('click', async () => {
+        if (!await avisaPendientes()) return;
+        // Las cuatro van siempre; las vacías el servidor no se las pasa al cargador.
+        const cuerpo = new FormData();
+        cuerpo.append('bimestre', $('#et_bimestre').value.trim());
+        cuerpo.append('pago', $('#et_pago').value.trim());
+        cuerpo.append('anio_pago', $('#et_anio').value.trim());
+        cuerpo.append('cohorte_nombre', $('#et_cohorte').value.trim());
+        lanza('carga', $('#enviarCarga'), cuerpo);
+    });
+
+    function pinta(t) {
+        const pct = t.avance ?? 0;
+        const enMarcha = t.estado === 'extrayendo';
+        const puesto = t.estado === 'en_cola' && t.puesto_en_cola
+            ? ` nº ${t.puesto_en_cola}` : '';
+        const salidas = (t.salidas || []).map(n =>
+            `<a class="desc" href="/extracciones/${t.id}/archivos/${encodeURIComponent(n)}">${escapa(n)}</a>`
+        ).join('') || '<span class="vacio">—</span>';
+        // La entrega comparte estados con las extracciones, pero no extrae nada.
+        const estado = t.tipo === 'entrega' && t.estado === 'extrayendo'
+            ? 'curando' : t.estado;
+        return `<tr>
+    <td><strong>${escapa(t.tipo.replace(/_/g, ' '))}</strong>
+        <span class="num archivo" title="${escapa(t.archivos.join(', '))}"
+          >${escapa(t.archivos.join(', '))}</span></td>
+    <td><span class="chip ${t.estado}">${escapa(estado.replace('_', ' '))}${puesto}</span>
+        ${t.error ? `<div class="num" style="color:var(--mal)">${escapa(t.error)}</div>` : ''}</td>
+    <td>${t.paginas_totales
+            ? `<span class="num">${t.paginas_hechas}/${t.paginas_totales} págs</span>
+           ${enMarcha ? `<div class="barra"><i style="width:${pct}%"></i></div>` : ''}`
+            : '<span class="vacio">—</span>'}
+      ${enMarcha ? `<div class="num">${transcurrido(t.iniciado)}</div>
+        <div class="num fase" title="${escapa(t.ultima_linea)}">${escapa(t.ultima_linea)}</div>` : ''}</td>
+    <td class="salidas">${salidas}</td>
+    <td style="white-space:nowrap">
+      <button class="leve" data-log="${t.id}">registro</button>
+      <button class="leve" data-borrar="${t.id}">${enMarcha || t.estado === 'en_cola' ? 'cancelar' : 'borrar'}</button>
+    </td></tr>`;
+    }
+
+    async function refresca() {
+        try {
+            const lista = await (await fetch('/extracciones')).json();
+            $('#cuerpo').innerHTML = lista.length
+                ? lista.map(pinta).join('')
+                : '<tr><td colspan="5" class="vacio">Todavia no hay ninguno.</td></tr>';
+            // El estado del corte se relee con la lista: lo que cambia es justo lo que
+            // acaban de producir los trabajos (un CSV nuevo, la entrega hecha).
+            cargaCortes();
+            if (viendoRegistro) {
+                const r = await fetch(`/extracciones/${viendoRegistro}/registro`);
+                $('#registro').textContent = r.ok ? await r.text() : 'todavia no hay registro';
+            }
+        } catch { /* el servidor se cayo; el siguiente intento lo dira */ }
+    }
+
+    $('#tipo').addEventListener('change', ajustaPista);
+
+    $('#cuerpo').addEventListener('click', async ev => {
+        const b = ev.target.closest('button');
+        if (!b) return;
+        if (b.dataset.log) {
+            viendoRegistro = viendoRegistro === b.dataset.log ? null : b.dataset.log;
+            $('#registro').hidden = !viendoRegistro;
+        } else if (b.dataset.borrar) {
+            await fetch(`/extracciones/${b.dataset.borrar}`, {method: 'DELETE'});
+        }
+        refresca();
+    });
+
+    $('#formulario').addEventListener('submit', async ev => {
+        ev.preventDefault();
+        // El orden de las ranuras es el que empareja cada archivo con su parte, así
+        // que se recorren en orden y no como los devuelva el navegador.
+        const entradas = [...document.querySelectorAll('.archivoEntrada')];
+        const err = $('#error');
+        if (entradas.some(e => !e.files.length)) {
+            // Se dice qué falta en vez de no hacer nada: un submit que se ignora en
+            // silencio parece que la página está rota.
+            err.textContent = entradas.length > 1
+                ? 'Falta alguno de los listados.'
+                : 'Elige un PDF.';
+            err.hidden = false;
+            return;
+        }
+        const barra = $('#barraSubida');
+        err.hidden = true; barra.hidden = false; $('#enviar').disabled = true;
+
+        const archivos = entradas.map(e => e.files[0]);
+        const total = archivos.reduce((s, f) => s + f.size, 0);
+        let hechos = 0;                                  // bytes ya confirmados
+        const pinta = n => barra.firstElementChild.style.width =
+            Math.round(100 * Math.min(n, total) / (total || 1)) + '%';
+
+        try {
+            const subidas = [];
+            for (const f of archivos) {
+                subidas.push(await sube(f, n => pinta(hechos + n)));
+                hechos += f.size; pinta(hechos);
+            }
+
+            const cuerpo = new FormData();
+            cuerpo.append('tipo', $('#tipo').value);
+            for (let i = 0; i < archivos.length; i++) {
+                cuerpo.append('subidas', subidas[i].id);
+                cuerpo.append('nombres', archivos[i].name);
+            }
+            const r = await fetch(`/cortes/${CORTE}/extracciones/ensamblar`,
+                {method: 'POST', body: cuerpo});
+            if (r.status !== 202) throw new Error((await r.json().catch(() => ({}))).detail
+                || 'no se pudo encolar');
+            for (const s of subidas) sessionStorage.removeItem(s.llave);
+            $('#formulario').reset(); ajustaPista();
+        } catch (e) {
+            err.textContent = e.message || 'no se pudo contactar con el servidor';
+            err.hidden = false;
+        } finally {
+            $('#enviar').disabled = false; barra.hidden = true;
+            barra.firstElementChild.style.width = '0';
+            refresca();
+        }
+    });
+
+    // Sube un archivo en trozos y devuelve el id de su subida.
+    //
+    // **Troceado y no de una vez porque el límite lo pone el proxy de en medio.**
+    // Cloudflare corta el cuerpo de CADA petición —el reporte de resultados, 140 MB,
+    // moría con 413— y el `client_max_body_size` de nginx no llegaba ni a verlo.
+    // Con trozos de 8 MB ninguna petición se acerca al límite, y da igual quién esté
+    // delante.
+    //
+    // El id se guarda en sessionStorage por archivo: si la subida se corta, al
+    // reintentar el mismo archivo se retoma donde iba en vez de empezar de cero.
+    async function sube(f, avisa) {
+        const llave = `subida:${CORTE}:${f.name}:${f.size}:${f.lastModified}`;
+        let id = sessionStorage.getItem(llave);
+        if (!id) {
+            id = [...crypto.getRandomValues(new Uint8Array(16))]
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+            sessionStorage.setItem(llave, id);
+        }
+        const n = Math.max(1, Math.ceil(f.size / TROZO));
+
+        // Lo que ya esté en el servidor no se vuelve a mandar. Se compara el tamaño y
+        // no solo la presencia: un trozo a medio escribir no vale por bueno.
+        let hay = {};
+        try {
+            const r = await fetch(`/cortes/${CORTE}/extracciones/parte/${id}`);
+            if (r.ok) { const d = await r.json(); if (d.total === n) hay = d.trozos || {}; }
+        } catch (e) { /* sin estado previo se sube entero, que es lo de siempre */ }
+
+        let subido = 0;
+        for (let i = 0; i < n; i++) {
+            const pedazo = f.slice(i * TROZO, Math.min((i + 1) * TROZO, f.size));
+            if (hay[i] === pedazo.size) { subido += pedazo.size; avisa(subido); continue; }
+            const cuerpo = new FormData();
+            cuerpo.append('subida', id);
+            cuerpo.append('indice', i);
+            cuerpo.append('total', n);
+            cuerpo.append('trozo', pedazo, f.name);
+            const r = await fetch(`/cortes/${CORTE}/extracciones/parte`,
+                {method: 'POST', body: cuerpo});
+            if (r.status !== 202) {
+                const d = await r.json().catch(() => ({}));
+                throw new Error(d.detail || `falló el trozo ${i + 1} de ${n}`);
+            }
+            subido += pedazo.size;
+            avisa(subido);
+        }
+        // La llave NO se borra aquí sino cuando el ensamblado ha ido bien: si fallara
+        // justo después de subir el último trozo, borrarla ahora obligaría a mandar
+        // los 140 MB otra vez teniéndolos ya todos en el servidor.
+        return {id, llave};
+    }
+
+    cargaAjustes().then(cargaTipos).then(cargaCortes).then(refresca);
+    setInterval(refresca, 2000);
+</script>
+</body>
+</html>

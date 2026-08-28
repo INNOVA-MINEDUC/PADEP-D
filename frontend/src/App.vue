@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { usePadep } from '@/stores/padep'
 
 import LoginView from '@/components/LoginView.vue'
@@ -20,8 +20,13 @@ import S11ComparacionNominas from '@/screens/S11ComparacionNominas.vue'
 import S12FichaAcademica from '@/screens/S12FichaAcademica.vue'
 import S13ConstructorReportes from '@/screens/S13ConstructorReportes.vue'
 import S14VistaReporte from '@/screens/S14VistaReporte.vue'
+import S15Extraccion from '@/screens/S15Extraccion.vue'
+import S16Curador from '@/screens/S16Curador.vue'
 
-const { state, currentModule, crumbScreen } = usePadep()
+const { state, currentModule, crumbScreen, restauraSesion } = usePadep()
+
+// Revalida el token guardado antes de decidir qué pintar.
+onMounted(restauraSesion)
 
 /**
  * Mapa pantalla → componente. Los ids conservan la numeración del prototipo
@@ -41,13 +46,19 @@ const SCREENS = {
   12: S12FichaAcademica,
   13: S13ConstructorReportes,
   14: S14VistaReporte,
+  15: S15Extraccion,
+  16: S16Curador,
 }
 
 const currentScreen = computed(() => SCREENS[state.active] ?? S01AltaCohorte)
 </script>
 
 <template>
-  <LoginView v-if="!state.loggedIn" />
+  <!-- Nada hasta saber si hay sesión: pintar el login y quitarlo medio segundo
+       después, en cada recarga, parece un fallo. -->
+  <div v-if="!state.sesionResuelta" class="arranque" />
+
+  <LoginView v-else-if="!state.loggedIn" />
 
   <div v-else class="shell">
     <AppHeader />
@@ -76,6 +87,7 @@ const currentScreen = computed(() => SCREENS[state.active] ?? S01AltaCohorte)
 </template>
 
 <style scoped>
+.arranque { min-height: 100vh; background: var(--bg); }
 .shell { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); color: var(--text); }
 .shell__body { display: flex; flex: 1; min-height: 0; }
 @media (max-width: 900px) { .shell__body { flex-direction: column; } }

@@ -1,0 +1,1328 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PADEP · extracción",
+    "summary": "Convierte los PDF escaneados del PADEP/D en Excel y CSV.",
+    "version": "1.0"
+  },
+  "paths": {
+    "/tipos": {
+      "get": {
+        "summary": "Documentos que sabe extraer",
+        "operationId": "tipos_tipos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Tipos Tipos Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ajustes": {
+      "get": {
+        "summary": "Qué puede hacer esta instalación",
+        "description": "Lo que cambia de una máquina a otra, para que la pantalla no ofrezca lo\nque va a rechazarse.\n\nSin esto, el formulario de extracción sigue a la vista en el servidor y el\nPDF **se sube entero** —140 MB el reporte de resultados— antes de que el\nservidor pueda decir que no: FastAPI recibe el formulario antes de que la\nruta llegue a mirarlo.\n\n`trozo_bytes` lo lee la pantalla para saber de qué tamaño cortar. Lo decide\nel servidor y no el navegador porque el límite lo pone el proxy que haya\ndelante, y eso solo se sabe en la instalación (ver `partes.tamano_trozo`).",
+        "operationId": "ajustes_ajustes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ajustes Ajustes Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes": {
+      "get": {
+        "summary": "Los cortes que hay, y qué le falta a cada uno",
+        "operationId": "listar_cortes_cortes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Cortes Cortes Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Crea la carpeta de un corte",
+        "description": "Crear el corte antes de subir nada es el orden natural: un PDF sin corte\nno tiene dónde vivir, y elegirlo después obligaba a mover cientos de MB.",
+        "operationId": "crear_corte_cortes_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_crear_corte_cortes_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Crear Corte Cortes Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}": {
+      "get": {
+        "summary": "Estado de un corte",
+        "operationId": "ver_corte_cortes__id_corte__get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ver Corte Cortes  Id Corte  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/nomina": {
+      "post": {
+        "summary": "Sube la nómina del pago",
+        "operationId": "subir_nomina_cortes__id_corte__nomina_post",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_subir_nomina_cortes__id_corte__nomina_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Subir Nomina Cortes  Id Corte  Nomina Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/extracciones": {
+      "post": {
+        "summary": "Sube un PDF al corte y encola su extracción",
+        "operationId": "crear_cortes__id_corte__extracciones_post",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_crear_cortes__id_corte__extracciones_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Crear Cortes  Id Corte  Extracciones Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/extracciones/parte": {
+      "post": {
+        "summary": "Recibe un trozo de un PDF que se está subiendo",
+        "description": "Un pedazo del archivo, identificado por la subida a la que pertenece.\n\nDevuelve qué trozos hay ya, que es lo que permite reanudar: el cliente\ncompara y manda solo lo que falta.",
+        "operationId": "subir_parte_cortes__id_corte__extracciones_parte_post",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_subir_parte_cortes__id_corte__extracciones_parte_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Subir Parte Cortes  Id Corte  Extracciones Parte Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/extracciones/parte/{subida}": {
+      "get": {
+        "summary": "Qué trozos de esa subida ya están en el servidor",
+        "operationId": "ver_parte_cortes__id_corte__extracciones_parte__subida__get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          },
+          {
+            "name": "subida",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subida"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ver Parte Cortes  Id Corte  Extracciones Parte  Subida  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/extracciones/ensamblar": {
+      "post": {
+        "summary": "Junta los trozos, deja el PDF en el corte y encola",
+        "description": "Cierra la subida: concatena, valida y encola.\n\n`subidas` y `nombres` van en el mismo orden que las ranuras del formulario,\nporque en los documentos de varias partes lo que distingue un archivo de\notro es la posición y no el nombre (ver `trabajos.Documento`).",
+        "operationId": "ensamblar_cortes__id_corte__extracciones_ensamblar_post",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ensamblar_cortes__id_corte__extracciones_ensamblar_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ensamblar Cortes  Id Corte  Extracciones Ensamblar Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/entrega": {
+      "post": {
+        "summary": "Cura y audita el corte contra su nómina",
+        "description": "Los tres pasos de siempre —curar con la nómina, armar la entrega y\nauditar— sobre lo que ya está en la carpeta del corte.\n\nSe exigen los cinco documentos porque la cobertura contra la nómina no\nsignifica nada con la mitad: diría que faltan 2557 profesores en el\ndocumento que no se subió.",
+        "operationId": "entregar_cortes__id_corte__entrega_post",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Entregar Cortes  Id Corte  Entrega Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/carga": {
+      "post": {
+        "summary": "Carga el corte ya entregado a MySQL",
+        "description": "Las cuatro etiquetas son opcionales.\n\nEl papel dice «NOVENO BIMESTRE» y la nómina «6to pago», y con cuatro\nsemestres esos números no cierran, así que no se pueden deducir del corte:\no los escribe quien carga, o no se saben. Lo que se deja en blanco entra\ncomo NULL y una carga posterior lo rellena — antes se rellenaba solo, pero\ncon los valores de la 35.",
+        "operationId": "cargar_cortes__id_corte__carga_post",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_cargar_cortes__id_corte__carga_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cargar Cortes  Id Corte  Carga Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Qué hay de este corte en la base",
+        "description": "Lo que MySQL sabe del corte: si está cargado, con qué etiquetas y cuánto.\n\nAparte de `GET /cortes/{id}`, que se deriva del disco a propósito y no\nconsulta la base. Si la base no responde —lo normal es que Docker no esté\nlevantado— devuelve `disponible: false` y el motivo, no un error: la\npantalla tiene que poder pintarse igual.",
+        "operationId": "ver_carga_cortes__id_corte__carga_get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ver Carga Cortes  Id Corte  Carga Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/pendientes": {
+      "get": {
+        "summary": "Lo que queda por completar a mano en el corte",
+        "operationId": "pendientes_cortes__id_corte__pendientes_get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Pendientes Cortes  Id Corte  Pendientes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/auditoria": {
+      "get": {
+        "summary": "¿Falta algún registro? Lo que encontró la última auditoría",
+        "description": "El resultado de `auditar_completitud.py`, que hasta ahora solo existía\ncomo texto en el registro del trabajo.\n\nEs la comprobación que responde a lo que ningún porcentaje delata: la fila\nque nunca se extrajo. Devuelve el resumen por documento y el detalle de cada\naviso, más la fecha, para poder decir si la auditoría es de antes o de\ndespués de la última entrega.",
+        "operationId": "auditoria_cortes__id_corte__auditoria_get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Auditoria Cortes  Id Corte  Auditoria Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/correcciones": {
+      "put": {
+        "summary": "Guarda una celda completada a mano",
+        "description": "Se guarda en el acto, no al final.\n\n`filas` son varias separadas por coma cuando el campo es de encabezado: se\nescribe una vez y vale para todas las filas de su página. Un campo de cada\nfila llega con una sola — poner el mismo valor en todas inventaría datos.\n\nLo escrito va a `<corte>/correcciones.csv`, que es el artefacto durable:\n`curar.py` regenera la entrega desde `datos/` y se lleva por delante lo\nescrito a mano, así que no puede vivir solo ahí. Valor vacío borra la\ncorrección, que es como se deshace un error.",
+        "operationId": "corregir_cortes__id_corte__correcciones_put",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_corregir_cortes__id_corte__correcciones_put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Corregir Cortes  Id Corte  Correcciones Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/altas": {
+      "put": {
+        "summary": "Guarda una casilla de una fila dada de alta a mano",
+        "description": "Para quien está en la nómina y no tiene **ninguna** fila en el documento.\n\nLa llave es el carné, no el número de fila: una persona que el OCR nunca\nextrajo no tiene posición a la que apuntar. Solo se admiten los campos que\nel documento pide (`ALTA_CAMPOS`) y `ANULADA`, que deshace el alta sin\nborrar ninguna línea del CSV.\n\nLo escrito entra en la entrega al **rehacerla**, no al volcar: un alta se\ninyecta antes del cruce con la nómina, que es lo que le pone el nombre y el\nmunicipio y lo que la saca de la lista de sin registro.",
+        "operationId": "dar_de_alta_cortes__id_corte__altas_put",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_dar_de_alta_cortes__id_corte__altas_put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Dar De Alta Cortes  Id Corte  Altas Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/correcciones/aplicar": {
+      "post": {
+        "summary": "Vuelca lo escrito a mano sobre la entrega",
+        "description": "Vuelca las correcciones sobre la entrega ya hecha.\n\nSi hay altas escritas después de la última entrega no basta con volcar: se\nrehace la entrega entera, porque un alta entra antes del cruce y la\ncobertura tiene que recalcularse. Se decide aquí y no en la pantalla para\nque valga también desde `/docs`.",
+        "operationId": "aplicar_cortes__id_corte__correcciones_aplicar_post",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Aplicar Cortes  Id Corte  Correcciones Aplicar Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/pagina/{nombre}/{pagina}": {
+      "get": {
+        "summary": "Una sola página de un PDF del corte",
+        "description": "Devuelve esa página suelta, como un PDF de una hoja.\n\nEnlazar al PDF entero con '#page=57' no sirve: Chrome aplica el fragmento\nantes de terminar de leer el documento y, cuando acaba de cargar los 40 MB,\n**se vuelve a la página 1**. Comprobado — el indicador marcaba 57 y al rato\nmarcaba 1. Un enlace que acierta a veces es peor que ninguno, porque quien\nlo usa no sabe si está mirando la página que pidió.\n\nExtraerla aquí quita la duda y de paso manda 40 KB en vez de 40 MB.",
+        "operationId": "una_pagina_cortes__id_corte__pagina__nombre___pagina__get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          },
+          {
+            "name": "nombre",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Nombre"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Pagina"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/archivos/{capa}/{nombre}": {
+      "get": {
+        "summary": "Descarga una salida del corte",
+        "operationId": "descargar_del_corte_cortes__id_corte__archivos__capa___nombre__get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          },
+          {
+            "name": "capa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Capa"
+            }
+          },
+          {
+            "name": "nombre",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Nombre"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/extracciones": {
+      "get": {
+        "summary": "Todos los trabajos, del más nuevo al más viejo",
+        "operationId": "listar_extracciones_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Extracciones Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/extracciones/{id_}": {
+      "get": {
+        "summary": "Estado y avance de un trabajo",
+        "operationId": "ver_extracciones__id___get",
+        "parameters": [
+          {
+            "name": "id_",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id "
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ver Extracciones  Id   Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancela si corre, borra si terminó",
+        "operationId": "cancelar_extracciones__id___delete",
+        "parameters": [
+          {
+            "name": "id_",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id "
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancelar Extracciones  Id   Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/extracciones/{id_}/registro": {
+      "get": {
+        "summary": "Lo que imprimió el extractor",
+        "operationId": "registro_extracciones__id___registro_get",
+        "parameters": [
+          {
+            "name": "id_",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id "
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/extracciones/{id_}/archivos/{nombre}": {
+      "get": {
+        "summary": "Descarga una salida del trabajo",
+        "description": "Las salidas ya no viven en la carpeta del trabajo sino en la de su\ncorte, así que se buscan por las capas donde puede haberlas dejado.",
+        "operationId": "descargar_extracciones__id___archivos__nombre__get",
+        "parameters": [
+          {
+            "name": "id_",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id "
+            }
+          },
+          {
+            "name": "nombre",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Nombre"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_cargar_cortes__id_corte__carga_post": {
+        "properties": {
+          "bimestre": {
+            "type": "string",
+            "title": "Bimestre",
+            "default": ""
+          },
+          "pago": {
+            "type": "string",
+            "title": "Pago",
+            "default": ""
+          },
+          "anio_pago": {
+            "type": "string",
+            "title": "Anio Pago",
+            "default": ""
+          },
+          "cohorte_nombre": {
+            "type": "string",
+            "title": "Cohorte Nombre",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "Body_cargar_cortes__id_corte__carga_post"
+      },
+      "Body_corregir_cortes__id_corte__correcciones_put": {
+        "properties": {
+          "archivo": {
+            "type": "string",
+            "title": "Archivo"
+          },
+          "filas": {
+            "type": "string",
+            "title": "Filas"
+          },
+          "campo": {
+            "type": "string",
+            "title": "Campo"
+          },
+          "valor": {
+            "type": "string",
+            "title": "Valor",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "archivo",
+          "filas",
+          "campo"
+        ],
+        "title": "Body_corregir_cortes__id_corte__correcciones_put"
+      },
+      "Body_crear_corte_cortes_post": {
+        "properties": {
+          "cohorte": {
+            "type": "string",
+            "title": "Cohorte"
+          },
+          "semestre": {
+            "type": "integer",
+            "title": "Semestre"
+          },
+          "corte": {
+            "type": "integer",
+            "title": "Corte"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohorte",
+          "semestre",
+          "corte"
+        ],
+        "title": "Body_crear_corte_cortes_post"
+      },
+      "Body_crear_cortes__id_corte__extracciones_post": {
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "archivos": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Archivos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tipo",
+          "archivos"
+        ],
+        "title": "Body_crear_cortes__id_corte__extracciones_post"
+      },
+      "Body_dar_de_alta_cortes__id_corte__altas_put": {
+        "properties": {
+          "archivo": {
+            "type": "string",
+            "title": "Archivo"
+          },
+          "carne": {
+            "type": "string",
+            "title": "Carne"
+          },
+          "campo": {
+            "type": "string",
+            "title": "Campo"
+          },
+          "valor": {
+            "type": "string",
+            "title": "Valor",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "archivo",
+          "carne",
+          "campo"
+        ],
+        "title": "Body_dar_de_alta_cortes__id_corte__altas_put"
+      },
+      "Body_ensamblar_cortes__id_corte__extracciones_ensamblar_post": {
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "subidas": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Subidas"
+          },
+          "nombres": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Nombres"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tipo",
+          "subidas",
+          "nombres"
+        ],
+        "title": "Body_ensamblar_cortes__id_corte__extracciones_ensamblar_post"
+      },
+      "Body_subir_nomina_cortes__id_corte__nomina_post": {
+        "properties": {
+          "archivo": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Archivo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "archivo"
+        ],
+        "title": "Body_subir_nomina_cortes__id_corte__nomina_post"
+      },
+      "Body_subir_parte_cortes__id_corte__extracciones_parte_post": {
+        "properties": {
+          "subida": {
+            "type": "string",
+            "title": "Subida"
+          },
+          "indice": {
+            "type": "integer",
+            "title": "Indice"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "trozo": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Trozo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subida",
+          "indice",
+          "total",
+          "trozo"
+        ],
+        "title": "Body_subir_parte_cortes__id_corte__extracciones_parte_post"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

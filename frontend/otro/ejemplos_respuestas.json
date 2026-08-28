@@ -1,0 +1,392 @@
+{
+  "/ajustes": {
+    "extraccion": true,
+    "trozo_bytes": 8388608
+  },
+  "/tipos": {
+    "asistencia": {
+      "archivos": 1,
+      "paginas_tipicas": "135"
+    },
+    "control_academico": {
+      "archivos": 1,
+      "paginas_tipicas": "245"
+    },
+    "reporte_resultados": {
+      "archivos": 1,
+      "paginas_tipicas": "351"
+    },
+    "ubicacion_sedes": {
+      "archivos": 1,
+      "paginas_tipicas": "15"
+    },
+    "docentes": {
+      "archivos": 2,
+      "paginas_tipicas": "16"
+    }
+  },
+  "/cortes": [
+    {
+      "id": "35-s3-c1",
+      "cohorte": "35",
+      "semestre": 3,
+      "corte": 1,
+      "carpeta": "cortes/35/s3-c1",
+      "nomina": "Nomina 35 6to pago 2026.xlsx",
+      "documentos": {
+        "asistencia": {
+          "pdfs": [
+            "ASISTENCIA_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 1077
+        },
+        "control_academico": {
+          "pdfs": [
+            "CONTROL ACADEMICO_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 1077
+        },
+        "reporte_resultados": {
+          "pdfs": [
+            "REPORTE DE RESULTADOS_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 2175
+        },
+        "ubicacion_sedes": {
+          "pdfs": [
+            "UBICACION_SEDES_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 107
+        },
+        "docentes": {
+          "pdfs": [
+            "1 LISTADO_DOCENTES_COMUNICACION_PROF6o._DIGECADE_35.pdf",
+            "2 LISTADO_DOCENTES_FACTORES_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 182
+        }
+      },
+      "entregado": true,
+      "curado": true,
+      "falta_para_entregar": []
+    },
+    {
+      "id": "36-s3-c1",
+      "cohorte": "36",
+      "semestre": 3,
+      "corte": 1,
+      "carpeta": "cortes/36/s3-c1",
+      "nomina": "Nomina 36 6to pago 2026.xlsx",
+      "documentos": {
+        "asistencia": {
+          "pdfs": [
+            "ASISTENCIA_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 2555
+        },
+        "control_academico": {
+          "pdfs": [
+            "CONTROL ACADEMICO_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 2558
+        },
+        "reporte_resultados": {
+          "pdfs": [
+            "REPORTE DE RESULTADOS_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 5227
+        },
+        "ubicacion_sedes": {
+          "pdfs": [
+            "UBICACION_SEDES_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 115
+        },
+        "docentes": {
+          "pdfs": [
+            "LISTADO_DOCENTES_AREA DE CIENCIAS_PROF6o.DIGECADE_36.pdf",
+            "LISTADO_DOCENTES_AREA DE PRODUCTIVIDAD_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 224
+        }
+      },
+      "entregado": true,
+      "curado": true,
+      "falta_para_entregar": []
+    }
+  ],
+  "/cortes/{id}": {
+    "id": "35-s3-c1",
+    "cohorte": "35",
+    "semestre": 3,
+    "corte": 1,
+    "carpeta": "cortes/35/s3-c1",
+    "nomina": "Nomina 35 6to pago 2026.xlsx",
+    "documentos": {
+      "asistencia": {
+        "pdfs": [
+          "ASISTENCIA_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 1077
+      },
+      "control_academico": {
+        "pdfs": [
+          "CONTROL ACADEMICO_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 1077
+      },
+      "reporte_resultados": {
+        "pdfs": [
+          "REPORTE DE RESULTADOS_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 2175
+      },
+      "ubicacion_sedes": {
+        "pdfs": [
+          "UBICACION_SEDES_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 107
+      },
+      "docentes": {
+        "pdfs": [
+          "1 LISTADO_DOCENTES_COMUNICACION_PROF6o._DIGECADE_35.pdf",
+          "2 LISTADO_DOCENTES_FACTORES_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 182
+      }
+    },
+    "entregado": true,
+    "curado": true,
+    "falta_para_entregar": []
+  },
+  "/cortes/{id}/pendientes": {
+    "listo": true,
+    "tareas": [
+      {
+        "id": "T000",
+        "documento": "Asistencia",
+        "archivo": "asistencia_extraida.csv",
+        "pdf": "ASISTENCIA_PROF6o._DIGECADE_35.pdf",
+        "pdf_url": "/cortes/35-s3-c1/pagina/ASISTENCIA_PROF6o._DIGECADE_35.pdf/57",
+        "pagina": "57",
+        "quien": "Hernández Pérez Olga Cristina",
+        "donde": "Izabal · Los Amates",
+        "filas": [
+          367
+        ],
+        "campos": [
+          {
+            "nombre": "S1",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "367",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          {
+            "nombre": "S2",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "367",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          "... 6 mas (recortado)"
+        ],
+        "revisar": "el total del papel no coincide con la suma de sesiones",
+        "solo_revisar": true
+      },
+      {
+        "id": "T001",
+        "documento": "Asistencia",
+        "archivo": "asistencia_extraida.csv",
+        "pdf": "ASISTENCIA_PROF6o._DIGECADE_35.pdf",
+        "pdf_url": "/cortes/35-s3-c1/pagina/ASISTENCIA_PROF6o._DIGECADE_35.pdf/62",
+        "pagina": "62",
+        "quien": "Morales Martínez Angela Isabel",
+        "donde": "Jalapa · Jalapa",
+        "filas": [
+          424
+        ],
+        "campos": [
+          {
+            "nombre": "S1",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "424",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          {
+            "nombre": "S2",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "424",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          "... 6 mas (recortado)"
+        ],
+        "revisar": "el total del papel no coincide con la suma de sesiones",
+        "solo_revisar": true
+      },
+      "... 19 mas (recortado)"
+    ],
+    "documentos": [
+      "Asistencia",
+      "Control académico",
+      "... 3 mas (recortado)"
+    ],
+    "sin_registro": [],
+    "correcciones": 98,
+    "altas": 0,
+    "sin_completar": 0,
+    "sin_registro_abiertos": 0,
+    "escrito_sin_volcar": false,
+    "altas_sin_reflejar": false
+  },
+  "/cortes/{id}/auditoria": {
+    "hay": true,
+    "cuando": "2026-08-05T16:44:58",
+    "al_dia": true,
+    "resumen": [
+      {
+        "Documento": "Asistencia",
+        "Filas": "1077",
+        "Personas_que_faltan": "0",
+        "Paginas_sospechosas": "0",
+        "Huecos_en_correlativo": "4",
+        "Filas_por_persona": "0"
+      },
+      {
+        "Documento": "Control academico",
+        "Filas": "1077",
+        "Personas_que_faltan": "0",
+        "Paginas_sospechosas": "0",
+        "Huecos_en_correlativo": "4",
+        "Filas_por_persona": "0"
+      },
+      "... 3 mas (recortado)"
+    ],
+    "avisos": [
+      {
+        "DOCUMENTO": "Asistencia",
+        "DONDE": "página 102",
+        "GRUPO": "",
+        "ESPERADAS": "33",
+        "EXTRAIDAS": "31",
+        "FALTAN": "2",
+        "QUE_PASA": "hueco en el correlativo No (puede ser un No mal leído, no una fila perdida): 3007, 3008"
+      },
+      {
+        "DOCUMENTO": "Asistencia",
+        "DONDE": "página 62",
+        "GRUPO": "",
+        "ESPERADAS": "35",
+        "EXTRAIDAS": "34",
+        "FALTAN": "1",
+        "QUE_PASA": "hueco en el correlativo No (puede ser un No mal leído, no una fila perdida): 2630"
+      },
+      "... 12 mas (recortado)"
+    ]
+  },
+  "/cortes/{id}/carga": {
+    "disponible": false,
+    "motivo": "la base no responde (OperationalError)",
+    "pista": "docker compose -f bd/docker-compose.yml up -d"
+  },
+  "/extracciones": [
+    {
+      "id": "2ff0b54eda4d",
+      "tipo": "entrega",
+      "cohorte": "36",
+      "semestre": 3,
+      "corte": 1,
+      "estado": "terminado",
+      "creado": "2026-08-05T17:29:55+00:00",
+      "iniciado": "2026-08-05T17:29:55+00:00",
+      "terminado": "2026-08-05T17:32:47+00:00",
+      "paginas_hechas": 0,
+      "paginas_totales": 0,
+      "archivos": [],
+      "salidas": [
+        "PADEP_36_final.xlsx",
+        "asistencia_extraida.csv",
+        "... 8 mas (recortado)"
+      ],
+      "origen": [],
+      "etiquetas": {},
+      "ultima_linea": "revisar: 267 indicios",
+      "error": "",
+      "puesto_en_cola": 0
+    },
+    {
+      "id": "3105b52b6750",
+      "tipo": "entrega",
+      "cohorte": "36",
+      "semestre": 3,
+      "corte": 1,
+      "estado": "terminado",
+      "creado": "2026-08-05T16:38:47+00:00",
+      "iniciado": "2026-08-05T16:38:47+00:00",
+      "terminado": "2026-08-05T16:40:10+00:00",
+      "paginas_hechas": 0,
+      "paginas_totales": 0,
+      "archivos": [],
+      "salidas": [
+        "PADEP_36_final.xlsx",
+        "asistencia_extraida.csv",
+        "... 8 mas (recortado)"
+      ],
+      "origen": [],
+      "etiquetas": {},
+      "ultima_linea": "revisar: 255 indicios",
+      "error": "",
+      "puesto_en_cola": 0
+    },
+    "... 13 mas (recortado)"
+  ]
+}

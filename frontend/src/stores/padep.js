@@ -1,5 +1,7 @@
 import { reactive, computed } from 'vue'
 import { GEO, NAV, SEED } from '@/data/catalog'
+import { entra, yo } from '@/api/auth'
+import { guardaToken, hayToken, cuandoExpire } from '@/api/cliente'
 
 /**
  * Store compartido de la aplicación.
@@ -12,16 +14,22 @@ import { GEO, NAV, SEED } from '@/data/catalog'
 
 const state = reactive({
   // --- Sesión ---
+  // El token vive en el cliente de API (localStorage); aquí solo el usuario.
   loggedIn: false,
+  usuario: null,
   loginUser: 'admin@mineduc.edu.gt',
   loginPass: '',
   loginError: '',
+  loginCargando: false,
+  // Falso hasta que se resuelve el /auth/me del arranque: sin esto la pantalla
+  // de login parpadea un instante en cada recarga aunque haya sesión válida.
+  sesionResuelta: false,
   showPass: false,
   profileOpen: false,
 
   // --- Navegación ---
   active: 1,
-  openModules: { m1: true, m2: false, m3: false, m4: false },
+  openModules: { m1: true, m2: false, m3: false, m4: false, m5: false },
 
   // --- Módulo 1: cohorte ---
   cohorte: { codigo: 'COH-2026-01', anio: '2026', saved: true },
@@ -130,16 +138,45 @@ const stats = computed(() => ({
 
 const actions = {
   // --- Sesión ---
-  login() {
+  async login() {
     if (!state.loginUser.trim() || !state.loginPass.trim()) {
       state.loginError = 'Ingresa usuario y contraseña.'
       return
     }
-    state.loggedIn = true
+    state.loginCargando = true
     state.loginError = ''
+    try {
+      state.usuario = await entra(state.loginUser.trim(), state.loginPass)
+      state.loggedIn = true
+      state.loginPass = ''
+    } catch (e) {
+      // El backend contesta «Credenciales invalidas» sin decir si falló el
+      // correo o la contraseña; se enseña tal cual.
+      state.loginError = e.message
+    } finally {
+      state.loginCargando = false
+    }
+  },
+  /**
+   * Revalida el token guardado al arrancar. Si caducó se descarta en silencio:
+   * el usuario ve el login, que es lo correcto, no un error que no puede
+   * arreglar.
+   */
+  async restauraSesion() {
+    if (hayToken()) {
+      try {
+        state.usuario = await yo()
+        state.loggedIn = true
+      } catch (e) {
+        guardaToken('')
+      }
+    }
+    state.sesionResuelta = true
   },
   logout() {
+    guardaToken('')
     state.loggedIn = false
+    state.usuario = null
     state.loginPass = ''
     state.active = 1
     state.profileOpen = false
@@ -239,6 +276,10 @@ const actions = {
   clearReportVars()    { state.reportVars = [] },
   clearReportFiltros() { state.s13Dep = 'Todos'; state.s13Estatus = 'Todos' },
 }
+
+// Un 401 en cualquier petición saca al usuario: el token caducó a media sesión
+// y seguir pintando pantallas que no pueden traer datos solo confunde.
+cuandoExpire(() => actions.logout())
 
 export function usePadep() {
   return {

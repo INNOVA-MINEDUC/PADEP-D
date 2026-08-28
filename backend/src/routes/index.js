@@ -18,6 +18,7 @@ router.get('/', (_req, res) => {
       'GET /api/usuarios': 'Listar usuarios (solo admin)',
       'POST /api/usuarios': 'Crear usuario con rol (solo admin)',
       'PATCH /api/usuarios/:id/estatus': 'Activar/inactivar (solo admin)',
+      'ALL /api/extraccion/*': 'Proxy a la API de extraccion (FastAPI). Requiere token',
     },
   });
 });

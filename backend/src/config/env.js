@@ -46,6 +46,18 @@ const env = {
     },
   },
 
+  // API de extraccion (FastAPI). Este backend hace de puerta unica: el
+  // navegador solo habla con Express y Express reenvia /api/extraccion/*.
+  extraccion: {
+    url: process.env.EXTRACCION_URL || 'http://127.0.0.1:8000',
+    // Solo si la API de extraccion vive tras un nginx con auth_basic.
+    basicUser: process.env.EXTRACCION_BASIC_USER || '',
+    basicPass: process.env.EXTRACCION_BASIC_PASS || '',
+    // Inactividad del socket, no duracion total: las rutas que encolan
+    // responden 202 al instante y el trabajo largo va por su cuenta.
+    timeoutMs: Number(process.env.EXTRACCION_TIMEOUT_MS || 30000),
+  },
+
   corsOrigin: process.env.CORS_ORIGIN || '*',
 };
 
