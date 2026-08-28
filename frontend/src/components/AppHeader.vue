@@ -1,10 +1,16 @@
 <script setup>
+import { computed } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { iniciales } from '@/utils/format'
 
 const { state, toggleProfile, goHome, logout, submitTopSearch } = usePadep()
 
-const usuario = { nombre: 'Lucía Morán', cargo: 'Supervisora educativa', correo: 'lmoran@mineduc.edu.gt' }
+// Del token, no inventado: nombre, rol y correo vienen de /api/auth/me.
+const usuario = computed(() => ({
+  nombre: state.usuario?.nombre ?? '—',
+  cargo: state.usuario?.rol ?? '',
+  correo: state.usuario?.email ?? '',
+}))
 </script>
 
 <template>

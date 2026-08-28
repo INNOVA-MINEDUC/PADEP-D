@@ -66,7 +66,10 @@ const { state, login, toggleShowPass } = usePadep()
 
         <p v-if="state.loginError" class="login__error" role="alert">{{ state.loginError }}</p>
 
-        <button type="submit" class="btn btn--brand login__submit"><span>→</span> Iniciar sesión</button>
+        <button type="submit" class="btn btn--brand login__submit" :disabled="state.loginCargando">
+          <span v-if="!state.loginCargando">→</span>
+          {{ state.loginCargando ? 'Entrando…' : 'Iniciar sesión' }}
+        </button>
 
         <p class="login__forgot"><a href="#">¿Olvidó su contraseña?</a></p>
         <p class="login__legal">Sistema de uso exclusivo para personal autorizado de MINEDUC</p>

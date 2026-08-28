@@ -84,6 +84,7 @@ password: Admin123*
 | GET    | `/api/usuarios`              | Solo admin        |
 | POST   | `/api/usuarios`              | Solo admin        |
 | PATCH  | `/api/usuarios/:id/estatus`  | Solo admin        |
+| ALL    | `/api/extraccion/*`          | Autenticado (proxy) |
 
 ### Ejemplos
 
@@ -103,6 +104,59 @@ curl -X POST http://localhost:4000/api/usuarios \
   -H "Content-Type: application/json" \
   -d '{"nombre":"Ana","email":"ana@mineduc.edu.gt","password":"secreto123","rol":"Enlace DIDEDUC"}'
 ```
+
+## Puerta unica hacia la API de extraccion
+
+La extraccion por OCR vive en otro servicio (FastAPI, `PycharmProjects/PADEP`).
+El frontend **no habla con el directamente**: todo pasa por este backend.
+
+```
+Vue :5173  ->  Express :4000/api/extraccion/*  ->  FastAPI :8000/*
+```
+
+Se gana lo siguiente:
+
+- **Una sola URL y un solo login** para el frontend. La API de extraccion no
+  tiene autenticacion propia, y aqui queda detras del JWT.
+- **Sin CORS en el FastAPI.** Ya no lo llama el navegador, lo llama Express
+  desde el servidor. Puede seguir escuchando solo en `127.0.0.1`.
+- **Sin `credentials: 'include'`.** Si arriba hay un nginx con `auth_basic`, la
+  credencial la pone Express desde `EXTRACCION_BASIC_USER/PASS`; nunca sale al
+  navegador.
+
+Las rutas se mapean quitando el prefijo, asi que el contrato de
+`api/openapi.json` vale tal cual:
+
+| Frontend | FastAPI |
+|---|---|
+| `GET /api/extraccion/ajustes` | `GET /ajustes` |
+| `GET /api/extraccion/cortes` | `GET /cortes` |
+| `POST /api/extraccion/cortes/{id}/extracciones/parte` | `POST /cortes/{id}/extracciones/parte` |
+
+Detalles que **no** hay que deshacer (estan comentados en
+`src/routes/extraccion.routes.js` y `src/app.js`):
+
+- El proxy va montado **antes** de `express.json()`. Los PDF suben en trozos de
+  8 MB y se encanan sin leerlos; si un body parser consume el cuerpo, se acabo
+  el stream.
+- **Sin keep-alive.** El FastAPI hay que reiniciarlo a mano cada vez que se
+  toca, y los sockets del pool quedarian muertos.
+- La cabecera `Authorization` se **sustituye**, no se reenvia: el Bearer es de
+  este backend.
+- Los codigos de estado pasan tal cual (`202` = encolado, `409` = la
+  instalacion no extrae) y los errores conservan la forma `{"detail": "..."}`
+  de FastAPI, ya escrita en espanol para quien opera.
+- `/api/extraccion` tiene su propio limitador (600/min). Con el general
+  (300 / 15 min) una sola subida troceada mas el sondeo de 2 s lo agotan.
+
+Levantar el FastAPI (desde `PycharmProjects/PADEP`):
+
+```bash
+.venv/Scripts/python.exe -m uvicorn api.main:api --port 8000
+```
+
+Si no esta arriba, el proxy responde `502` con la instruccion para levantarlo,
+en vez de un error opaco.
 
 ## Estructura
 
