@@ -15,6 +15,9 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+# Entorno real del servidor: credenciales de BD y JWT_SECRET. Nunca al repo.
+.env.production
+.env.staging
 
 # =========================
 # Build

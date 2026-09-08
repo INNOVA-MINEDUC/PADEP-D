@@ -1,0 +1,57 @@
+# Despliegue de PADEP en el servidor de produccion.
+#
+# La BD MySQL NO va aqui: ya vive en el propio servidor, fuera de Docker. Por
+# eso el backend la alcanza por `host.docker.internal`, que `host-gateway`
+# resuelve a la IP del host desde dentro de la red del contenedor.
+#
+#   docker compose pull && docker compose up -d      (desde el registry)
+#   docker compose up -d --build                     (compilando en el server)
+
+# padep-app, no padep: ya existe un proyecto compose llamado 'padep' (el de
+# bd/docker-compose.yml con MySQL, adminer y metabase). Compartir nombre hace
+# que un `docker compose down` desde aqui se lleve por delante esos servicios.
+name: padep-app
+
+services:
+  backend:
+    image: ghcr.io/innova-mineduc/padep-d-backend:${TAG:-latest}
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Sin `ports`: el backend no se publica al host. Solo entra el frontend por
+    # la red interna, y las tareas puntuales via `docker compose run`.
+    expose:
+      - "4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  frontend:
+    image: ghcr.io/innova-mineduc/padep-d-frontend:${TAG:-latest}
+    build:
+      context: ./frontend
+      args:
+        # Vacio: mismo origen, el nginx de la imagen reparte /api al backend.
+        VITE_API_URL: ""
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    # Publicado SOLO en loopback: el unico que entra es el nginx global del
+    # servidor. Sin el `127.0.0.1:`, Docker abriria el 8080 a internet saltandose
+    # el firewall (Docker escribe sus reglas por delante de las de UFW).
+    ports:
+      - "127.0.0.1:8080:80"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }

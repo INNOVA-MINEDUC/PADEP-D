@@ -27,6 +27,9 @@ const env = {
     pass: process.env.DB_PASS ?? 'root',
     dialect: process.env.DB_DIALECT || 'mysql',
     logging: bool('DB_LOGGING', false),
+    // En produccion la BD ya existe y el usuario de la app no suele tener
+    // privilegio CREATE: DB_ENSURE=false salta el CREATE DATABASE del arranque.
+    ensure: bool('DB_ENSURE', true),
     sync: bool('DB_SYNC', true),
     // 'alter' | 'force' | 'none'
     syncMode: (process.env.DB_SYNC_MODE || 'alter').toLowerCase(),

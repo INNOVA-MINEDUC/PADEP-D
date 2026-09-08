@@ -1,0 +1,27 @@
+# Para cuando MySQL tambien es un contenedor en el servidor.
+#
+#   cp deploy/docker-compose.override.yml.example docker-compose.override.yml
+#
+# Compose lo lee solo si esta en la raiz y con ese nombre exacto. Esta en
+# .gitignore a proposito: es un ajuste del servidor, no del repo.
+#
+# Averigua el nombre del contenedor y de su red:
+#   docker ps --filter ancestor=mysql:8.0 --format '{{.Names}}'
+#   docker inspect NOMBRE_MYSQL --format '{{json .NetworkSettings.Networks}}'
+#
+# Y en backend/.env.production pon el NOMBRE DEL CONTENEDOR como host:
+#   DB_HOST=padep_mysql
+#
+# Asi el trafico no sale al host para volver a entrar, y MySQL no necesita
+# publicar el 3306 en el servidor.
+
+services:
+  backend:
+    networks:
+      - default   # para que el frontend lo siga alcanzando
+      - bd
+
+networks:
+  bd:
+    external: true
+    name: NOMBRE_DE_LA_RED_DE_MYSQL   # <<< ajusta
