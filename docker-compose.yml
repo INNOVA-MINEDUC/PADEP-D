@@ -47,11 +47,28 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    # Publicado SOLO en loopback: el unico que entra es el nginx global del
-    # servidor. Sin el `127.0.0.1:`, Docker abriria el 8080 a internet saltandose
-    # el firewall (Docker escribe sus reglas por delante de las de UFW).
-    ports:
-      - "127.0.0.1:8080:80"
+    # Sin puertos publicados: el nginx del servidor tambien es un contenedor y
+    # llega por red de Docker. Publicar el 8080 solo abriria una via extra.
+    # Para depurar desde el propio host, descomenta:
+    #   ports: ["127.0.0.1:8080:80"]
+    networks:
+      # Red interna del proyecto: por aqui habla con el backend.
+      default: {}
+      # Red compartida con el nginx del servidor.
+      proxy:
+        aliases:
+          # El nginx apunta a este alias, no al nombre del contenedor: el
+          # nombre cambia si se renombra el proyecto o si hay mas de una
+          # replica, y el alias no.
+          - padep-frontend
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "5" }
+
+networks:
+  # La red que ya usa el nginx del servidor para alcanzar a los demas sitios.
+  # Se declara external: la crea y la gobierna ese otro stack, no este.
+  #   docker inspect NOMBRE_NGINX --format '{{json .NetworkSettings.Networks}}'
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

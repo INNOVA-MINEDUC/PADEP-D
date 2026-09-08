@@ -1,145 +1,136 @@
 # PADEP — Despliegue en produccion
 
-Dos contenedores, la BD fuera de Docker.
+Dos contenedores propios. La base de datos y el nginx que da la cara ya existen
+en el servidor y son contenedores tambien, asi que todo se habla por redes de
+Docker y nada de PADEP publica puertos en el host.
 
 ```
-internet ──> nginx del host (TLS)
-                └─> 127.0.0.1:8080  contenedor frontend (nginx + build de Vue)
+internet ──> contenedor nginx del servidor (TLS, sirve tambien otros sitios)
+                │  red 'proxy'
+                └─> padep-frontend   (nginx + build de Vue)
                         ├─ /            estatico del SPA
-                        └─ /api/*  ───>  contenedor backend  (Express :4000)
-                                              ├─> MySQL del host (host.docker.internal:3306)
-                                              └─> API de extraccion (FastAPI, remota)
+                        └─ /api/*  ───>  backend  (Express :4000)
+                                             │  red del stack de la BD
+                                             ├─> MySQL (contenedor)
+                                             └─> API de extraccion (FastAPI, remota)
 ```
 
-El backend **no** se publica al host: solo lo alcanza el frontend por la red
-interna de Docker. El unico puerto abierto es el 8080 en loopback.
+Tres redes en juego:
+
+| Red | Quien la crea | Para que |
+|---|---|---|
+| `padep-app_default` | este compose | frontend ↔ backend |
+| `proxy` (o como se llame) | el stack del nginx | nginx ↔ frontend |
+| la red del MySQL | el stack de la BD | backend ↔ MySQL |
+
+El backend no esta en la red del nginx: solo lo alcanza el frontend.
 
 ---
 
 ## 1. Requisitos en el servidor
 
 ```bash
-docker --version          # 20.10+ (host-gateway necesita esa version)
+docker --version
 docker compose version    # v2
-nginx -v
 ```
 
-## 2. MySQL del host: dejar entrar a Docker
+## 2. Averiguar los nombres reales
 
-Es el paso que mas falla. El contenedor no es `localhost` para MySQL: llega
-desde la red bridge (`172.17.0.0/16`), asi que hacen falta dos cosas.
-
-**a) Que MySQL escuche en la interfaz del bridge.** En
-`/etc/mysql/mysql.conf.d/mysqld.cnf`:
-
-```ini
-# La IP del bridge, NO 0.0.0.0: asi Docker entra pero MySQL sigue sin asomarse
-# a internet. Confirma la IP con: ip -4 addr show docker0
-bind-address = 172.17.0.1
-```
-
-Si el servidor necesita que MySQL siga atendiendo tambien a sus propios
-procesos locales, pon las dos: `bind-address = 127.0.0.1,172.17.0.1`.
+Todo lo demas depende de estos cuatro datos.
 
 ```bash
-sudo systemctl restart mysql
+# Contenedor de MySQL y su red
+docker ps --filter ancestor=mysql:8.0 --format '{{.Names}}'
+docker inspect NOMBRE_MYSQL --format '{{json .NetworkSettings.Networks}}'
+
+# Red del nginx que da la cara
+docker ps --filter ancestor=nginx --format '{{.Names}}'
+docker inspect NOMBRE_NGINX --format '{{json .NetworkSettings.Networks}}'
+
+# Donde monta su configuracion (busca el bind hacia /etc/nginx/conf.d)
+docker inspect NOMBRE_NGINX --format '{{json .Mounts}}'
 ```
 
-**b) Un usuario con permisos solo sobre `padep` y solo desde esa red:**
+Apunta: **nombre del contenedor MySQL**, **red del MySQL**, **red del nginx** y
+**ruta del volumen de configuracion**.
+
+## 3. Permisos en MySQL
+
+El backend llega desde otro contenedor, no desde localhost, asi que el GRANT
+tiene que contemplar la red de Docker:
 
 ```sql
-CREATE USER IF NOT EXISTS 'padep'@'172.%' IDENTIFIED BY 'LA_CONTRASENA';
+CREATE USER IF NOT EXISTS 'padep'@'%' IDENTIFIED BY 'LA_CONTRASENA';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES, DROP
-  ON padep.* TO 'padep'@'172.%';
+  ON padep.* TO 'padep'@'%';
 FLUSH PRIVILEGES;
 ```
 
-`CREATE`/`ALTER`/`INDEX` hacen falta para `npm run db:sync`. No se da `CREATE`
-global, por eso el `.env.production` lleva `DB_ENSURE=false`: sin esa variable
-el arranque intentaria `CREATE DATABASE` y moriria con *Access denied*.
+`CREATE`/`ALTER`/`INDEX` hacen falta para `npm run db:sync`. No se concede
+`CREATE` global, y por eso el `.env.production` lleva `DB_ENSURE=false`: sin esa
+variable el arranque intentaria `CREATE DATABASE` y moriria con *Access denied*
+aunque la base estuviera perfectamente.
 
-Comprueba que el firewall no expone el 3306 hacia fuera:
+`'padep'@'%'` es aceptable mientras MySQL no publique el 3306 fuera de Docker.
+Si lo publica, restringe al rango de la red (`'padep'@'172.21.%'`) y quita ese
+`ports` del compose de la BD.
 
-```bash
-sudo ss -lntp | grep 3306      # debe salir 172.17.0.1:3306, nunca 0.0.0.0:3306
-```
-
-### Si en el servidor MySQL tambien es un contenedor
-
-Entonces `host.docker.internal` sobra y ademas es peor: la conexion saldria al
-host para volver a entrar. Se conectan por la red de Docker, que de paso evita
-publicar el 3306 en el host.
-
-1. Averigua el nombre del contenedor de MySQL y su red:
-
-```bash
-docker ps --filter ancestor=mysql:8.0 --format '{{.Names}}'
-docker inspect NOMBRE_MYSQL --format '{{json .NetworkSettings.Networks}}'
-```
-
-2. Cuelga el backend de esa red con un `docker-compose.override.yml`:
-
-```yaml
-services:
-  backend:
-    networks: [default, bd]
-
-networks:
-  bd:
-    external: true
-    name: NOMBRE_DE_LA_RED_DE_MYSQL
-```
-
-3. En `.env.production`, `DB_HOST` pasa a ser el nombre del contenedor:
-
-```ini
-DB_HOST=padep_mysql
-```
-
-Asi el paso 2a (bind-address) no aplica: MySQL ya escucha dentro de la red de
-Docker. El GRANT del paso 2b si hace falta, pero con el rango que use esa red.
-
-> `docker-compose.override.yml` esta en `.gitignore`, asi que ese ajuste se
-> queda en el servidor y no viaja al repo.
-
-## 3. Codigo y entorno
+## 4. Codigo y entorno
 
 ```bash
 git clone https://github.com/INNOVA-MINEDUC/PADEP-D.git padep && cd padep
+git checkout development
+```
+
+**a) Conectar el backend a la red del MySQL:**
+
+```bash
+cp deploy/docker-compose.override.yml.example docker-compose.override.yml
+nano docker-compose.override.yml     # pon ahi la red del MySQL
+```
+
+**b) Variables del compose**, en un `.env` en la raiz:
+
+```ini
+TAG=development
+PROXY_NETWORK=NOMBRE_DE_LA_RED_DEL_NGINX
+```
+
+`TAG=development` porque `latest` solo se etiqueta desde `main`.
+
+**c) Entorno del backend:**
+
+```bash
 cp backend/.env.production.example backend/.env.production
-nano backend/.env.production        # rellena todo lo marcado con <<< >>>
+nano backend/.env.production
 chmod 600 backend/.env.production
 ```
 
-Genera un `JWT_SECRET` nuevo — **no** reutilices el de desarrollo:
+Ahi `DB_HOST` es el **nombre del contenedor de MySQL**, no
+`host.docker.internal`. Y genera un `JWT_SECRET` nuevo, no reutilices el de
+desarrollo:
 
 ```bash
 openssl rand -base64 48
 ```
 
-`backend/.env.production` esta en `.gitignore`. Que siga asi.
+`backend/.env.production` y `docker-compose.override.yml` estan en
+`.gitignore`. Que sigan asi.
 
-## 4. Bajar las imagenes de GHCR
+## 5. Bajar las imagenes de GHCR
 
-Si el repo es privado, el servidor necesita un token con `read:packages`
+Si el repo es privado, hace falta un token con `read:packages`
 ([crear aqui](https://github.com/settings/tokens)):
 
 ```bash
 echo "$GHCR_TOKEN" | docker login ghcr.io -u TU_USUARIO --password-stdin
-```
-
-Las imagenes se etiquetan con el nombre de la rama. `latest` solo existe para
-`main`; desde `development` hay que decirlo:
-
-```bash
-echo "TAG=development" >> .env      # el compose lee ${TAG:-latest}
 docker compose pull
 ```
 
 > Alternativa sin registry, compilando en el propio servidor:
 > `docker compose up -d --build`
 
-## 5. Primer arranque: esquema y datos base
+## 6. Primer arranque: esquema y datos base
 
 El esquema **no** se crea solo (`DB_SYNC=false` a proposito: un `sync` en cada
 arranque puede alterar tablas con datos). Se hace una vez, a mano:
@@ -148,45 +139,58 @@ arranque puede alterar tablas con datos). Se hace una vez, a mano:
 # Crea las 48 tablas del esquema v3
 docker compose run --rm backend npm run db:sync
 
-# Roles, permisos, catalogos (departamentos, jornadas, tipos de documento)
-# y el usuario administrador. Es idempotente: repetirlo no duplica nada.
+# Roles, permisos, catalogos y el usuario administrador.
+# Idempotente: repetirlo no duplica nada.
 docker compose run --rm backend npm run seed
 ```
 
-El seed imprime las credenciales del admin (`SEED_ADMIN_EMAIL` /
-`SEED_ADMIN_PASSWORD`). **Cambia esa contrasena en el primer login.**
-
-Ya se puede levantar todo:
+El seed imprime las credenciales del admin. **Cambia esa contrasena en el primer
+login.**
 
 ```bash
 docker compose up -d
-docker compose ps          # los dos en 'healthy'
-curl -s localhost:8080/health
+docker compose ps            # los dos en 'healthy'
 ```
 
-## 6. Nginx del host
+Comprueba desde dentro, que es la unica via: PADEP no publica puertos.
 
 ```bash
-sudo cp deploy/nginx-padep.conf /etc/nginx/sites-available/padep
-sudo nano /etc/nginx/sites-available/padep     # ajusta server_name
-sudo ln -s /etc/nginx/sites-available/padep /etc/nginx/sites-enabled/padep
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d padep.mineduc.edu.gt
+docker compose exec frontend wget -qO- http://127.0.0.1/health
+docker compose exec frontend wget -qO- http://127.0.0.1/api
 ```
 
-El `client_max_body_size 32m` de ese bloque no es opcional: los PDF se suben en
-trozos de 8 MB y el limite por defecto de nginx (1 MB) los corta con un 413 que
-parece un fallo de la aplicacion.
-
-## 7. Verificar
+## 7. Enchufarlo al nginx del servidor
 
 ```bash
-curl -s https://padep.mineduc.edu.gt/health        # {"ok":true,...}
+cp deploy/nginx-padep.conf /RUTA/DEL/VOLUMEN/conf.d/padep.conf
+nano /RUTA/DEL/VOLUMEN/conf.d/padep.conf     # server_name y rutas de los certs
+
+docker exec NOMBRE_NGINX nginx -t
+docker exec NOMBRE_NGINX nginx -s reload
+```
+
+Dos cosas de ese archivo que no son cosmeticas:
+
+- El upstream se resuelve **por variable con `resolver 127.0.0.11`**. Ese nginx
+  sirve otros sitios: con un `proxy_pass http://padep-frontend` literal, si el
+  contenedor de PADEP esta parado durante un reload, nginx no levanta y se caen
+  todos los demas. Con resolver, PADEP da 502 y el resto sigue sirviendo.
+- `client_max_body_size 32m`. Los PDF suben en trozos de 8 MB y el limite por
+  defecto (1 MB) los corta con un 413 que parece un fallo de la aplicacion.
+
+Si los certificados de los demas sitios los emite certbot en otro contenedor,
+emite el de PADEP por la misma via. Las rutas del `.conf` son las de **dentro**
+del contenedor de nginx.
+
+## 8. Verificar
+
+```bash
+curl -s https://padep.mineduc.edu.gt/health         # {"ok":true,...}
 curl -s https://padep.mineduc.edu.gt/api | head -c 200
-curl -sI https://padep.mineduc.edu.gt | head -1    # 200 y el SPA
+curl -sI https://padep.mineduc.edu.gt | head -1     # 200 y el SPA
 ```
 
-## 8. Actualizar
+## 9. Actualizar
 
 ```bash
 git pull
@@ -201,20 +205,23 @@ Si el `git pull` trajo modelos nuevos, ademas:
 docker compose run --rm backend npm run db:sync
 ```
 
-## 9. Volver atras
+No hace falta tocar el nginx del servidor: el alias `padep-frontend` sigue
+apuntando al contenedor nuevo.
 
-Las imagenes quedan etiquetadas tambien por commit corto:
+## 10. Volver atras
+
+Las imagenes se etiquetan tambien por commit corto:
 
 ```bash
 TAG=sha-a1b2c3d docker compose up -d
 ```
 
-## 10. Operacion diaria
+## 11. Operacion diaria
 
 ```bash
 docker compose logs -f backend        # o frontend
 docker compose restart backend
-docker compose down                   # para todo (no toca la BD)
+docker compose down                   # para PADEP; no toca ni la BD ni el nginx
 ```
 
 Los logs rotan solos (10 MB x 5 por servicio), configurado en el compose.
@@ -225,10 +232,13 @@ Los logs rotan solos (10 MB x 5 por servicio), configurado en el compose.
 
 | Sintoma | Causa |
 |---|---|
-| `ECONNREFUSED 172.17.0.1:3306` | MySQL sigue con `bind-address = 127.0.0.1`. Paso 2a. |
-| `Access denied for user 'padep'@'172.18.0.3'` | Falta el `GRANT ... @'172.%'`. Paso 2b. |
+| `network proxy declared as external, but could not be found` | `PROXY_NETWORK` del `.env` no coincide con la red real del nginx. Paso 2. |
+| `getaddrinfo ENOTFOUND` sobre el host de la BD | Falta el `docker-compose.override.yml`, o la red del MySQL esta mal puesta. Paso 4a. |
+| `Access denied for user 'padep'@'172.x.x.x'` | El GRANT no cubre la red de Docker. Paso 3. |
 | `Access denied ... CREATE DATABASE` al arrancar | Falta `DB_ENSURE=false` en `.env.production`. |
-| 413 al subir un PDF | Falta `client_max_body_size` en el nginx del host. Paso 6. |
-| 504 en una extraccion larga | `proxy_read_timeout` corto en el nginx del host. |
-| El navegador sirve JS viejo tras un deploy | Cache de `index.html`. El nginx del contenedor ya lo prohibe; revisa que no lo cachee algo por delante. |
-| `denied` en `docker compose pull` | Falta `docker login ghcr.io` con un token `read:packages`. Paso 4. |
+| 502 solo en PADEP, los demas sitios bien | El contenedor frontend esta caido. `docker compose ps`. Es el fallo *contenido*, funcionando como toca. |
+| 502 y `padep-frontend could not be resolved` en el log del nginx | El frontend no esta en la red del nginx. Revisa `PROXY_NETWORK` y `docker network inspect`. |
+| 413 al subir un PDF | Falta `client_max_body_size` en el nginx del servidor. Paso 7. |
+| 504 en una extraccion larga | `proxy_read_timeout` corto en el nginx del servidor. |
+| El navegador sirve JS viejo tras un deploy | Cache de `index.html`. El nginx de la imagen ya lo prohibe; revisa que no lo cachee algo por delante. |
+| `denied` en `docker compose pull` | Falta `docker login ghcr.io` con un token `read:packages`. Paso 5. |
