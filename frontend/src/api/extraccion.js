@@ -3,9 +3,13 @@ import { pide, pideTexto, encola, abreEnPestana, descarga } from './cliente'
 /**
  * API de extraccion (FastAPI) vista a traves del proxy de Express.
  *
- * Las rutas son las mismas del contrato (`frontend/otro/openapi.json`), solo
- * con el prefijo del proxy delante. Si algun dia el frontend vuelve a servirse
- * desde el mismo origen que FastAPI, basta con vaciar RAIZ.
+ * Las rutas son las mismas del contrato —`frontend/openapi.json`, regenerado
+ * del codigo de la API—, solo con el prefijo del proxy delante. Si algun dia el
+ * frontend vuelve a servirse desde el mismo origen que FastAPI, basta con vaciar
+ * RAIZ.
+ *
+ * `frontend/otro/` guarda el contrato de ANTES del cambio de eje del corte (el
+ * que aun hablaba de semestres): esta ahi como historia, no como referencia.
  */
 const RAIZ = '/api/extraccion'
 

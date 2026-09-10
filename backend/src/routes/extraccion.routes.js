@@ -54,7 +54,7 @@ export default function extraccionProxy(req, res, next) {
   if (basic) cabeceras.authorization = basic;
 
   // Montado con app.use('/api/extraccion', ...), req.url ya viene sin el
-  // prefijo y con la query: '/cortes/35-s3-c1/pendientes?x=1'.
+  // prefijo y con la query: '/cortes/11-car35-t6-c1/pendientes?x=1'.
   const arriba = cliente.request(
     {
       protocol: destino.protocol,

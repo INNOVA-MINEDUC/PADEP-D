@@ -6,10 +6,12 @@ import { usaAjustes } from '@/composables/usaAjustes'
 import { usaCortes } from '@/composables/usaCortes'
 import { usaSubida } from '@/composables/usaSubida'
 import { usaTrabajos } from '@/composables/usaTrabajos'
+import { usaEstadoCarga } from '@/composables/usaEstadoCarga'
 import SelectorCorte from '@/components/SelectorCorte.vue'
 import BarraAvance from '@/components/BarraAvance.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import { pillClass } from '@/utils/format'
+import { CARRERAS, etiquetaCarrera } from '@/data/carreras'
 
 const { goTo } = usePadep()
 const { puedeExtraer, trozo, tipos, carga: cargaAjustes } = usaAjustes()
@@ -19,10 +21,18 @@ const {
 } = usaCortes()
 const { subiendo, avance, error: errorSubida, envia } = usaSubida(elegido, trozo)
 const { lista: trabajos, registroDe, registro, refresca, verRegistro, vivo } = usaTrabajos()
+const { estado: estadoCarga, refresca: refrescaCarga } = usaEstadoCarga(elegido)
 
 const error = ref('')
 const nuevoAbierto = ref(false)
-const nuevo = ref({ cohorte: '', semestre: 1, corte: 1 })
+// Valores, no placeholders: en gris nadie los escribe y el POST sale con la
+// carrera vacia -> 422. El `corte` va aqui pero no en la pantalla (ver 7a):
+// hoy siempre vale 1 y `POST /cortes` es idempotente, asi que fijarlo hace
+// que reenviar el formulario reseleccione el corte en vez de crear uno nuevo.
+const CORTE_POR_DEFECTO = { cohorte: '11', carrera: '35', trimestre: 6, corte: 1 }
+const nuevo = ref({ ...CORTE_POR_DEFECTO })
+// Salida de emergencia por si algun dia hay dos entregas en el mismo trimestre.
+const corteVisible = ref(false)
 const tipo = ref('')
 const archivos = ref([])
 const nomina = ref(null)
@@ -71,6 +81,7 @@ async function conError(fn) {
     ocupado.value = false
   }
   await cargaCortes().catch(() => {})
+  refrescaCarga()
   refresca()
 }
 
@@ -78,7 +89,8 @@ const creaCorte = () => conError(async () => {
   const d = await api.creaCorte({ ...nuevo.value })
   elige(d.id)
   nuevoAbierto.value = false
-  nuevo.value = { cohorte: '', semestre: 1, corte: 1 }
+  nuevo.value = { ...CORTE_POR_DEFECTO }
+  corteVisible.value = false
 })
 
 const subeNomina = () => conError(async () => {
@@ -221,21 +233,45 @@ onMounted(async () => {
         <form v-if="nuevoAbierto" class="fila" @submit.prevent="creaCorte">
           <label class="field">
             <span class="field__label">Cohorte</span>
-            <input v-model="nuevo.cohorte" class="input" required placeholder="36">
+            <input v-model="nuevo.cohorte" class="input" required>
           </label>
+          <!-- Desplegable y no texto libre: la carrera es justo donde se vuelve
+               a colar el error de confundirla con la cohorte. Las dos son de la
+               Onceava y se separan por este codigo. -->
           <label class="field">
-            <span class="field__label">Semestre (1-4)</span>
-            <input v-model.number="nuevo.semestre" class="input" type="number" min="1" max="4" required>
+            <span class="field__label">Carrera</span>
+            <select v-model="nuevo.carrera" class="select" required>
+              <option v-for="(nombre, codigo) in CARRERAS" :key="codigo" :value="codigo">
+                {{ codigo }} — {{ nombre }}
+              </option>
+            </select>
           </label>
+          <!-- El tope de 12 solo ataja el numero absurdo: no dice cuantos
+               trimestres dura una cohorte, que no se sabe. -->
           <label class="field">
+            <span class="field__label">Trimestre (1-12)</span>
+            <input v-model.number="nuevo.trimestre" class="input" type="number" min="1" max="12" required>
+          </label>
+          <!-- Normalmente no esta: hoy el corte siempre vale 1 y quien usa la
+               pantalla no sabe que es. Se revela con el enlace de abajo. -->
+          <label v-if="corteVisible" class="field">
             <span class="field__label">Corte</span>
             <input v-model.number="nuevo.corte" class="input" type="number" min="1" required>
           </label>
           <button class="btn btn--primary" type="submit" :disabled="ocupado">Crear</button>
         </form>
+        <p v-if="nuevoAbierto && !corteVisible" class="nota nota--suelta">
+          <button type="button" class="btn-link" @click="corteVisible = true">
+            Otra entrega en este trimestre →
+          </button>
+        </p>
 
         <p v-if="!corte" class="nota">Crea un corte para empezar.</p>
         <template v-else>
+          <p class="nota">
+            {{ etiquetaCarrera(corte.carrera) }} · trimestre {{ corte.trimestre }}
+            <template v-if="corte.corte !== 1"> · corte {{ corte.corte }}</template>
+          </p>
           <p class="nota">
             <span class="mono">{{ corte.carpeta }}</span>
             · {{ extraidos }}/5 documentos extraídos ·
@@ -328,10 +364,30 @@ onMounted(async () => {
         </div>
 
         <h3 class="sub-titulo">Cargar a la base</h3>
+
+        <!-- Las tres formas de GET /cortes/{id}/carga. `disponible: false` no es
+             un error —lo normal es que la base no esté levantada—: se pinta el
+             motivo y el resto de la pantalla sigue funcionando. -->
+        <p v-if="estadoCarga && !estadoCarga.disponible" class="notice notice--clay">
+          <strong>La base no está disponible.</strong> {{ estadoCarga.motivo }}
+          <template v-if="estadoCarga.pista"><br><span class="mono">{{ estadoCarga.pista }}</span></template>
+        </p>
+        <p v-else-if="estadoCarga && !estadoCarga.cargado" class="nota">
+          {{ estadoCarga.motivo || 'Este corte todavía no se ha cargado a la base.' }}
+        </p>
+        <p v-else-if="estadoCarga" class="nota nota--ok">
+          Cargado a la base.
+          <span v-for="(n, que) in estadoCarga.cuentas" :key="que" class="cuenta mono">
+            {{ bonito(que) }}: {{ n }}
+          </span>
+        </p>
+
         <p class="nota">
-          Las cuatro etiquetas son opcionales: el papel dice «NOVENO BIMESTRE» y la nómina
-          «6to pago», y con cuatro semestres esos números no cierran, así que no se deducen
-          del corte. Lo que se deje en blanco entra vacío y se puede rellenar después.
+          Las cuatro etiquetas están escritas en los papeles que estás subiendo: el bimestre
+          en la portada del PDF, el pago y el año en el nombre de la nómina, y el nombre de
+          la cohorte en su columna <span class="mono">COHORTE</span>. Ninguna se deduce del
+          corte con una fórmula. <strong>Lo que no sepas, déjalo en blanco</strong>: entra
+          vacío a propósito y una carga posterior que sí lo traiga lo rellena.
         </p>
         <div class="fila">
           <label class="field">
@@ -460,6 +516,8 @@ onMounted(async () => {
 
 <style scoped>
 .bloque { margin-bottom: 20px; }
+.nota--suelta { margin-top: 8px; }
+.cuenta { margin-left: 10px; font-weight: 400; color: var(--muted); }
 .nota { font-size: 13px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
 .nota--ok { color: var(--success); font-weight: 600; }
 .sub-titulo { font-size: 16px; font-weight: 700; color: var(--navy); margin: 24px 0 8px; }

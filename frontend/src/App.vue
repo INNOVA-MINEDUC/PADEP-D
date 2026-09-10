@@ -11,11 +11,8 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import S01AltaCohorte from '@/screens/S01AltaCohorte.vue'
 import S02Sedes from '@/screens/S02Sedes.vue'
 import S03Enlaces from '@/screens/S03Enlaces.vue'
-import S05CargaCandidatos from '@/screens/S05CargaCandidatos.vue'
-import S07ResultadosAdmision from '@/screens/S07ResultadosAdmision.vue'
 import S08ListadoInscritos from '@/screens/S08ListadoInscritos.vue'
 import S09BusquedaDocentes from '@/screens/S09BusquedaDocentes.vue'
-import S10NotasAsistencia from '@/screens/S10NotasAsistencia.vue'
 import S11ComparacionNominas from '@/screens/S11ComparacionNominas.vue'
 import S12FichaAcademica from '@/screens/S12FichaAcademica.vue'
 import S13ConstructorReportes from '@/screens/S13ConstructorReportes.vue'
@@ -29,19 +26,18 @@ const { state, currentModule, crumbScreen, restauraSesion } = usePadep()
 onMounted(restauraSesion)
 
 /**
- * Mapa pantalla → componente. Los ids conservan la numeración del prototipo
- * (4 y 6 nunca existieron). Al montar vue-router, esto se vuelve el array
- * de rutas casi sin cambios.
+ * Mapa pantalla → componente. Los ids conservan la numeración del prototipo,
+ * con huecos: 4 y 6 nunca existieron, y 5, 7 y 10 se retiraron al centralizar
+ * la extracción en el módulo 5 (subían un archivo de mentira y pintaban SEED;
+ * lo que de verdad extraen esos documentos es S15). Al montar vue-router, esto
+ * se vuelve el array de rutas casi sin cambios.
  */
 const SCREENS = {
   1: S01AltaCohorte,
   2: S02Sedes,
   3: S03Enlaces,
-  5: S05CargaCandidatos,
-  7: S07ResultadosAdmision,
   8: S08ListadoInscritos,
   9: S09BusquedaDocentes,
-  10: S10NotasAsistencia,
   11: S11ComparacionNominas,
   12: S12FichaAcademica,
   13: S13ConstructorReportes,

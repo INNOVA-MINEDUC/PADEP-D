@@ -47,10 +47,9 @@ const state = reactive({
   ],
   enlaceForm: { sedeId: 's1', nombre: '', cargo: '', contacto: '' },
 
-  // --- Cargas de archivo (simuladas) ---
-  s5Uploaded: false,
-  s7Uploaded: false,
-  s10Uploaded: false,
+  // --- Carga de archivo (simulada) ---
+  // Solo queda la de S11: las de las pantallas 5, 7 y 10 se fueron con ellas al
+  // centralizar la extracción en el módulo 5.
   s11Uploaded: false,
 
   // --- Listados y filtros ---
@@ -60,8 +59,6 @@ const state = reactive({
   s9Estatus: 'Todos',
 
   // --- Seguimiento ---
-  s10Curso: 'Módulo I: Pedagogía',
-  s10Periodo: '2026 - Trimestre 1',
   notasOverrides: {},
   s11Marcados: [],
   fichaId: SEED[0].id,
@@ -123,14 +120,6 @@ const nextStepId = computed(() => {
   const i = checklist.value.findIndex(c => !c.done)
   return i === -1 ? null : i + 1
 })
-
-/** Contadores del panel de estadísticas de los módulos 2 y 3. */
-const stats = computed(() => ({
-  candidatos: SEED.length,
-  evaluados: SEED.filter(d => d.resultado !== '-').length,
-  aprobados: SEED.filter(d => d.resultado === 'Aprobado').length,
-  inscritos: inscritos.value.length,
-}))
 
 /* =========================================================
    Acciones
@@ -293,7 +282,6 @@ export function usePadep() {
     enlacesCount,
     checklist,
     nextStepId,
-    stats,
     // acciones
     ...actions,
   }

@@ -28,11 +28,14 @@ export const NAV = [
       { id: 3, title: 'Asignación de Enlaces DIDEDUC' },
     ],
   },
+  // Los módulos 2 y 3 ya no cargan archivos: «Carga Inicial de Candidatos»,
+  // «Carga de Resultados de Admisión» y «Carga de Notas y Asistencia» (5, 7 y
+  // 10) se retiraron porque duplicaban la extracción del módulo 5 —los mismos
+  // documentos, pero con una subida simulada—. Aquí solo quedan las pantallas
+  // de consulta.
   {
     id: 'm2', num: 2, title: 'Registro Inicial (Docente)',
     screens: [
-      { id: 5, title: 'Carga Inicial de Candidatos' },
-      { id: 7, title: 'Carga de Resultados de Admisión' },
       { id: 8, title: 'Listado de Inscritos' },
       { id: 9, title: 'Búsqueda y Consulta de Docentes' },
     ],
@@ -40,7 +43,6 @@ export const NAV = [
   {
     id: 'm3', num: 3, title: 'Ficha Académica / Seguimiento',
     screens: [
-      { id: 10, title: 'Carga de Notas y Asistencia' },
       { id: 11, title: 'Comparación de Nóminas' },
       { id: 12, title: 'Ficha Académica (detalle)' },
     ],
@@ -70,9 +72,6 @@ export const MOD1_STEPS = [
 
 /** Variables disponibles en el constructor de reportes. */
 export const REPORT_VARIABLES = ['Cohorte', 'Sede', 'Estatus', 'Periodo', 'Notas', 'Asistencia', 'Actas']
-
-export const CURSOS = ['Módulo I: Pedagogía', 'Módulo II: Didáctica', 'Módulo III: Evaluación']
-export const PERIODOS = ['2026 - Trimestre 1', '2026 - Trimestre 2']
 
 /** Docentes semilla. */
 export const SEED = [

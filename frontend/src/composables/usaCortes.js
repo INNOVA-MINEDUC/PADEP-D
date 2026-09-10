@@ -3,13 +3,29 @@ import { api } from '@/api/extraccion'
 
 const LLAVE = 'padep.corte'
 
+// Los ids de antes del cambio de eje ('35-s3-c1') no casan con el patrón nuevo
+// y la API los rechaza con 422 en TODAS las rutas con `{id_corte}`: la pantalla
+// se ve rota sin decir por qué. Se descarta el guardado antes de que llegue a
+// usarse, sin esperar a la lista, porque las llamadas de las otras pantallas
+// pueden salir antes de que `carga()` conteste.
+const PATRON = /^\d+-car\d+-t\d+-c\d+$/
+
+function guardado() {
+  const id = localStorage.getItem(LLAVE) || ''
+  if (id && !PATRON.test(id)) {
+    localStorage.removeItem(LLAVE)
+    return ''
+  }
+  return id
+}
+
 /**
  * El corte manda: sin uno elegido no se puede subir nada, porque no habria
  * donde dejarlo. Se recuerda en localStorage o se pierde en cada refresco.
  */
 export function usaCortes() {
   const lista = ref([])
-  const elegido = ref(localStorage.getItem(LLAVE) || '')
+  const elegido = ref(guardado())
 
   const corte = computed(() => lista.value.find(c => c.id === elegido.value))
 
@@ -24,6 +40,8 @@ export function usaCortes() {
 
   async function carga() {
     lista.value = await api.cortes()
+    // Segundo filtro: el patrón solo descarta lo de otra época; esto descarta
+    // tambien el corte que se borro o el de otra instalacion.
     if (!lista.value.some(c => c.id === elegido.value)) {
       elige(lista.value.length ? lista.value[0].id : '')
     }
