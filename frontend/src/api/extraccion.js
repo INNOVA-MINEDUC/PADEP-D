@@ -47,7 +47,12 @@ export const api = {
   subeTrozo: (id, cuerpo) => encola(`${RAIZ}/cortes/${id}/extracciones/parte`, cuerpo),
   ensambla: (id, cuerpo) => encola(`${RAIZ}/cortes/${id}/extracciones/ensamblar`, cuerpo),
 
-  trabajos: () => pide(`${RAIZ}/extracciones`),
+  // Sin `corte`, el histórico entero. Con él, solo los de ese corte. El filtro
+  // es opcional a propósito: la cola es UNA y global —un trabajo a la vez—, así
+  // que hace falta poder ver los de fuera, o un trabajo «en cola» que no arranca
+  // no tiene explicación en pantalla. Un corte mal escrito da 422.
+  trabajos: (corte = '') =>
+    pide(`${RAIZ}/extracciones${corte ? `?corte=${encodeURIComponent(corte)}` : ''}`),
   borra: (id) => pide(`${RAIZ}/extracciones/${id}`, { method: 'DELETE' }),
   registro: (id) => pideTexto(`${RAIZ}/extracciones/${id}/registro`),
 

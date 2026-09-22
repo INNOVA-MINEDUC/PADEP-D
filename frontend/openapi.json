@@ -881,23 +881,45 @@
     },
     "/extracciones": {
       "get": {
-        "summary": "Todos los trabajos, del más nuevo al más viejo",
+        "summary": "Los trabajos, del más nuevo al más viejo",
+        "description": "Sin `corte`, todos. Con él, solo los de ese corte.\n\n    GET /extracciones                        el histórico entero\n    GET /extracciones?corte=11-car35-t6-c1   solo los de ese corte\n\n**Opcional y no obligatorio** porque las dos vistas hacen falta: la pantalla\nde un corte quiere los suyos, y «qué ha corrido esta máquina» —incluido si\nhay algo extrayéndose ahora mismo, que sea del corte que sea bloquea la\ncola— necesita verlos todos. Un filtro forzado escondería justo el trabajo\nque explica por qué el tuyo no arranca.\n\nSe filtra aquí y no en la cola porque el filtro es de presentación: la cola\nes una sola y global a propósito —un trabajo a la vez, que una extracción\nocupa todos los núcleos—, y partirla por corte daría a entender que hay una\npor cada uno.",
         "operationId": "listar_extracciones_get",
+        "parameters": [
+          {
+            "name": "corte",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Corte"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
                   "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
                   "title": "Response Listar Extracciones Get"
                 }
               }
             }
+          },
+          "422": {
+            "description": "el corte no se escribe '11-car35-t6-c1'"
           }
         }
       }

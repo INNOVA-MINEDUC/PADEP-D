@@ -13,6 +13,9 @@ Contexto largo en `TRASPASO_FRONTEND.md` (actualizado). Esto es solo el delta.
 Un corte se identificaba con **tres** datos (cohorte, semestre, corte) y ahora
 se identifica con **cuatro**: cohorte, **carrera**, **trimestre**, corte.
 
+Y hay **una pantalla nueva** que no existía: los enlaces de DIDEDUC (punto 8).
+No tiene nada que ver con el cambio de eje; se puede dejar para después.
+
 ```
 antes:   35-s3-c1        cohorte=35  semestre=3  corte=1
 ahora:   11-car35-t6-c1  cohorte=11  carrera=35  trimestre=6  corte=1
@@ -37,12 +40,12 @@ manda el backend, el frontend nunca lo calcula.
 
 ---
 
-## Los siete cambios
+## Los nueve cambios
 
 ### 1. Regenerar los tipos
 
 `api/openapi.json` y `api/ejemplos_respuestas.json` están regenerados del código
-(25 rutas). Cópialos otra vez y rehaz el cliente tipado:
+(34 rutas). Cópialos otra vez y rehaz el cliente tipado:
 
 ```bash
 npx openapi-typescript api/openapi.json -o src/api/tipos.ts
@@ -233,6 +236,146 @@ los rellena.
 
 Van en el paso de carga a la base, no en el de crear el corte.
 
+### 8. Pantalla nueva: los enlaces de DIDEDUC
+
+Nueve rutas que antes no existían. Es **la primera parte de la API que escribe
+en MySQL**, y no se parece al resto: aquí no hay PDF, ni extracción, ni entrega.
+Se crea gente y se le asigna un departamento.
+
+#### Las dos cosas, que son distintas
+
+```
+la PERSONA        nombre, cargo, telefono, email          /enlaces
+la ASIGNACION     en esta cohorte, este departamento      /cohortes/{c}/enlaces
+                  lo lleva esta persona
+```
+
+**El departamento no es un campo de la persona.** Se crea el enlace sin
+departamento —eso es un estado normal, no un formulario a medias— y se asigna
+después, dentro de una cohorte. El motivo: la misma persona puede llevar
+Huehuetenango en la Onceava y otro departamento en la Doceava.
+
+#### Las rutas
+
+```
+GET    /departamentos                              los 22, para el desplegable
+GET    /enlaces                                    las personas, con sus asignaciones
+POST   /enlaces                                    crear      → 201
+GET    /enlaces/{id}
+PUT    /enlaces/{id}                               editar
+DELETE /enlaces/{id}                               → 409 si está asignado
+
+GET    /cohortes/{cohorte}/enlaces                 los 22 con su enlace
+PUT    /cohortes/{cohorte}/enlaces/{departamento}  asignar o reasignar
+DELETE /cohortes/{cohorte}/enlaces/{departamento}  dejarlo sin enlace
+```
+
+`{cohorte}` es el **código**: `11`. No el id de la base, y no el id del corte.
+
+`POST` y `PUT` van por formulario (`Form`), igual que el resto de la API.
+`/enlaces` toma `nombre` (obligatorio) + `cargo`, `telefono`, `email`;
+`/cohortes/{c}/enlaces/{d}` toma `id_enlace`.
+
+#### Las formas
+
+```json
+GET /enlaces
+[{ "id_enlace": 15, "nombre": "Ana Pérez", "cargo": "Coordinadora",
+   "telefono": "5555-0000", "email": "ana@mineduc.gob.gt",
+   "asignaciones": [
+     { "id_cohorte": 1, "cohorte": "11",
+       "id_departamento": 13, "departamento": "Huehuetenango" }] }]
+```
+
+```json
+GET /cohortes/11/enlaces
+[{ "id_departamento": 16, "departamento": "Alta Verapaz", "enlace": null },
+ { "id_departamento": 13, "departamento": "Huehuetenango",
+   "enlace": { "id_enlace": 15, "nombre": "Ana Pérez", "cargo": "…",
+               "telefono": "…", "email": "…" } }]
+```
+
+**Devuelve los 22 departamentos, también los que no tienen enlace.** La pantalla
+es «quién lleva cada departamento» y el que está sin asignar es justo la fila
+que hay que rellenar — no la filtres, píntala con un botón de asignar.
+
+#### `PUT` reasigna, y dice a quién desplazó
+
+Es `PUT` sobre el departamento y no `POST` a una lista porque **la asignación es
+el departamento**: asignar y reasignar son la misma operación, y repetir el
+mismo `PUT` no crea una segunda fila.
+
+```json
+PUT /cohortes/11/enlaces/13   id_enlace=16
+{ "cohorte": "11", "departamento": "Huehuetenango", "enlace": "Luis Mo",
+  "id_enlace": 16, "id_departamento": 13,
+  "sustituyo": { "id_enlace": 15, "nombre": "Ana Pérez" } }
+```
+
+`sustituyo` es **`null`** si el departamento estaba libre, y también al repetir
+el mismo `PUT`. Cuando trae a alguien, esa persona **se ha quedado sin
+departamento** y hay que decirlo: un aviso después, o una confirmación antes
+—«Huehuetenango lo lleva Ana Pérez. ¿Reemplazar?»—. Lo que no vale es tragárselo:
+quien asigna puede no saber que el departamento ya tenía a otro.
+
+#### Los tres errores previstos
+
+Ninguno es un fallo: todos traen un `detail` que se puede enseñar tal cual.
+
+| | |
+|---|---|
+| `409` al asignar | «Ana ya lleva Huehuetenango en esta cohorte. Una persona lleva un solo departamento; quítale ese primero.» |
+| `409` al borrar | «no se puede borrar a Ana: está asignado en Izabal (cohorte 11). Quita esas asignaciones primero.» |
+| `404` en cohorte | «no existe la cohorte 99 en la base. Se crea al cargar un corte suyo.» |
+
+Ese último tiene truco: **la cohorte existe en la base solo después de cargar un
+corte suyo.** Una cohorte que solo está en disco todavía no tiene enlaces que
+asignar. Si la pantalla ofrece elegir cohorte, sácala de aquí y no de `/cortes`.
+
+#### Y una diferencia de criterio con el resto de la API
+
+Si MySQL no responde, estas rutas devuelven **503**, no una lista vacía.
+
+Es a propósito y no contradice a `GET /cortes/{id}/carga`, que devuelve
+`disponible: false`: allí la base es un extra y la pantalla tiene que pintarse
+igual sin ella. Aquí la base es lo único que hay, y contestar «no hay enlaces»
+cuando lo que pasa es que MySQL está caído sería mentir.
+
+### 9. El histórico de trabajos se puede filtrar por corte
+
+`GET /extracciones` sigue devolviendo **todos** los trabajos, como hasta ahora.
+Lo nuevo es un parámetro opcional:
+
+```
+GET /extracciones                        el histórico entero
+GET /extracciones?corte=11-car35-t6-c1   solo los de ese corte
+```
+
+Cada trabajo ya traía `cohorte`, `carrera`, `trimestre` y `corte`; ahora además
+se puede pedir filtrado y no traerse lo que no se va a pintar.
+
+**Es opcional a propósito, y las dos vistas hacen falta.** La pantalla de un
+corte quiere los suyos; pero «qué está corriendo ahora mismo» los quiere todos,
+porque **la cola es una sola y global** —un trabajo a la vez, que una extracción
+ocupa todos los núcleos—. Si la pantalla filtra siempre por el corte elegido y
+hay una extracción de otro corte en marcha, el usuario ve su trabajo «en cola»
+sin nada que explique por qué no arranca.
+
+Lo razonable: filtrar por defecto, con un «ver todos» a mano. O una línea fija
+arriba con lo que se está extrayendo ahora, sea del corte que sea.
+
+Dos detalles del comportamiento:
+
+- Un corte mal escrito da **422**, con el mismo mensaje que el resto de rutas
+- Un corte **sin histórico** da `200` y lista vacía, no 404. Tampoco se
+  comprueba que el corte exista en disco: un corte borrado puede tener
+  histórico, y un 404 escondería justo lo que se está buscando
+
+Y un aviso que no es del filtro pero se ve al mirar el histórico: los trabajos
+que estaban «en cola» o «extrayendo» cuando se paró el servidor aparecen como
+**fallidos**, con «el servidor se detuvo durante la extracción». Es correcto: un
+proceso no sobrevive a un reinicio, y dejarlo como «extrayendo» sería mentir.
+
 ---
 
 ## Lo que NO cambia
@@ -254,3 +397,11 @@ se puede entregar— y **no se recalcula en el cliente**.
 7. Pulsar «Crear» sobre un corte que ya existe lo **selecciona**, no da error
 8. Cargar a la base manda `bimestre`, `pago`, `anio_pago` y `cohorte_nombre`,
    y los deja vacíos si el usuario no los sabe (nunca inventados)
+9. `GET /extracciones?corte=…` devuelve solo los de ese corte, y sigue habiendo
+   forma de ver todos
+9. `GET /cohortes/11/enlaces` pinta **22** filas, con botón de asignar en las
+   que traen `enlace: null`
+10. Reasignar un departamento ocupado avisa de a quién desplazó (`sustituyo`),
+    antes o después, pero avisa
+11. Con MySQL apagado, las rutas de enlaces dan **503** y la pantalla lo dice;
+    no enseña una lista vacía

@@ -78,9 +78,23 @@
 /**
  * Un trabajo de la cola: extraccion, entrega o carga. `GET /extracciones`.
  *
+ * La ruta acepta `?corte=11-car35-t6-c1` para traer solo los de ese corte. Es
+ * OPCIONAL a proposito y las dos vistas hacen falta: la cola es UNA y global
+ * —un trabajo a la vez, porque una extraccion ocupa todos los nucleos—, asi que
+ * filtrar siempre escondería el trabajo de otro corte que explica por que el
+ * tuyo sigue «en cola». Un corte mal escrito da 422; un corte sin historico da
+ * 200 y lista vacia, no 404 (un corte borrado puede tener historico).
+ *
+ * Las cuatro partes del corte vienen SUELTAS, no como id armado: para comparar
+ * con `Corte.id` hay que rearmarlo `<cohorte>-car<carrera>-t<trimestre>-c<corte>`.
+ *
  * @typedef {object} Trabajo
  * @property {string} id
  * @property {string} tipo              'asistencia' | 'docentes' | 'entrega' | 'carga' | ...
+ * @property {string} cohorte           '11'
+ * @property {string} carrera           '35' | '36'
+ * @property {number} trimestre
+ * @property {number} corte
  * @property {'en_cola'|'extrayendo'|'terminado'|'fallido'|'cancelado'} estado
  * @property {?number} puesto_en_cola
  * @property {?string} iniciado         ISO

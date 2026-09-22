@@ -11,28 +11,22 @@ import SelectorCorte from '@/components/SelectorCorte.vue'
 import BarraAvance from '@/components/BarraAvance.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import { pillClass } from '@/utils/format'
-import { CARRERAS, etiquetaCarrera } from '@/data/carreras'
+import { etiquetaCarrera } from '@/data/carreras'
 
-const { goTo } = usePadep()
+const { goTo, refrescaCohorte } = usePadep()
 const { puedeExtraer, trozo, tipos, carga: cargaAjustes } = usaAjustes()
 const {
   lista: cortes, elegido, corte, puedeEntregar, puedeCargar, extraidos,
   carga: cargaCortes, elige,
 } = usaCortes()
 const { subiendo, avance, error: errorSubida, envia } = usaSubida(elegido, trozo)
-const { lista: trabajos, registroDe, registro, refresca, verRegistro, vivo } = usaTrabajos()
+const {
+  lista: trabajos, registroDe, registro, soloDelCorte, filtrando, bloqueadaPorOtro,
+  refresca, verRegistro, vivo,
+} = usaTrabajos(elegido)
 const { estado: estadoCarga, refresca: refrescaCarga } = usaEstadoCarga(elegido)
 
 const error = ref('')
-const nuevoAbierto = ref(false)
-// Valores, no placeholders: en gris nadie los escribe y el POST sale con la
-// carrera vacia -> 422. El `corte` va aqui pero no en la pantalla (ver 7a):
-// hoy siempre vale 1 y `POST /cortes` es idempotente, asi que fijarlo hace
-// que reenviar el formulario reseleccione el corte en vez de crear uno nuevo.
-const CORTE_POR_DEFECTO = { cohorte: '11', carrera: '35', trimestre: 6, corte: 1 }
-const nuevo = ref({ ...CORTE_POR_DEFECTO })
-// Salida de emergencia por si algun dia hay dos entregas en el mismo trimestre.
-const corteVisible = ref(false)
 const tipo = ref('')
 const archivos = ref([])
 const nomina = ref(null)
@@ -49,6 +43,15 @@ const pista = computed(() => {
 })
 
 const bonito = n => String(n).replace(/_/g, ' ')
+
+// El trabajo trae las cuatro partes sueltas, no el id armado. Se rearma igual
+// que lo hace el servidor, y solo para comparar con el corte elegido y marcar
+// los ajenos: no se manda a ninguna ruta.
+const idCorteDe = t => `${t.cohorte}-car${t.carrera}-t${t.trimestre}-c${t.corte}`
+const corteDe = (t) => {
+  const base = `${etiquetaCarrera(t.carrera)} · t${t.trimestre}`
+  return t.corte === 1 ? base : `${base} · c${t.corte}`
+}
 
 // La entrega comparte estados con las extracciones, pero no extrae nada.
 const estadoDe = t => (t.tipo === 'entrega' && t.estado === 'extrayendo' ? 'curando' : t.estado)
@@ -85,13 +88,9 @@ async function conError(fn) {
   refresca()
 }
 
-const creaCorte = () => conError(async () => {
-  const d = await api.creaCorte({ ...nuevo.value })
-  elige(d.id)
-  nuevoAbierto.value = false
-  nuevo.value = { ...CORTE_POR_DEFECTO }
-  corteVisible.value = false
-})
+// El sidebar y las pantallas de consulta enseñan la cohorte del corte elegido,
+// y no piden cortes por su cuenta: hay que avisarlas al cambiar.
+const cambia = (id) => { elige(id); refrescaCohorte() }
 
 const subeNomina = () => conError(async () => {
   if (!nomina.value) throw new Error('Elige un archivo .xlsx.')
@@ -223,50 +222,20 @@ onMounted(async () => {
 
         <div class="fila">
           <div class="fila__ancho">
-            <SelectorCorte :lista="cortes" :elegido="elegido" @elige="elige" />
+            <SelectorCorte :lista="cortes" :elegido="elegido" @elige="cambia" />
           </div>
-          <button class="btn btn--outline" @click="nuevoAbierto = !nuevoAbierto">
-            {{ nuevoAbierto ? 'Cancelar' : 'Nuevo corte…' }}
-          </button>
+          <!-- El alta vive en el módulo 1: aquí solo se elige sobre cuál
+               trabajar. Antes el formulario estaba en esta pantalla, y era el
+               único sitio de la aplicación donde se creaba algo de verdad. -->
+          <button class="btn btn--outline" @click="goTo(1)">Nueva alta…</button>
         </div>
 
-        <form v-if="nuevoAbierto" class="fila" @submit.prevent="creaCorte">
-          <label class="field">
-            <span class="field__label">Cohorte</span>
-            <input v-model="nuevo.cohorte" class="input" required>
-          </label>
-          <!-- Desplegable y no texto libre: la carrera es justo donde se vuelve
-               a colar el error de confundirla con la cohorte. Las dos son de la
-               Onceava y se separan por este codigo. -->
-          <label class="field">
-            <span class="field__label">Carrera</span>
-            <select v-model="nuevo.carrera" class="select" required>
-              <option v-for="(nombre, codigo) in CARRERAS" :key="codigo" :value="codigo">
-                {{ codigo }} — {{ nombre }}
-              </option>
-            </select>
-          </label>
-          <!-- El tope de 12 solo ataja el numero absurdo: no dice cuantos
-               trimestres dura una cohorte, que no se sabe. -->
-          <label class="field">
-            <span class="field__label">Trimestre (1-12)</span>
-            <input v-model.number="nuevo.trimestre" class="input" type="number" min="1" max="12" required>
-          </label>
-          <!-- Normalmente no esta: hoy el corte siempre vale 1 y quien usa la
-               pantalla no sabe que es. Se revela con el enlace de abajo. -->
-          <label v-if="corteVisible" class="field">
-            <span class="field__label">Corte</span>
-            <input v-model.number="nuevo.corte" class="input" type="number" min="1" required>
-          </label>
-          <button class="btn btn--primary" type="submit" :disabled="ocupado">Crear</button>
-        </form>
-        <p v-if="nuevoAbierto && !corteVisible" class="nota nota--suelta">
-          <button type="button" class="btn-link" @click="corteVisible = true">
-            Otra entrega en este trimestre →
+        <p v-if="!corte" class="nota">
+          No hay ninguno.
+          <button type="button" class="btn-link" @click="goTo(1)">
+            Crea el primero en Alta de Cohorte →
           </button>
         </p>
-
-        <p v-if="!corte" class="nota">Crea un corte para empezar.</p>
         <template v-else>
           <p class="nota">
             {{ etiquetaCarrera(corte.carrera) }} · trimestre {{ corte.trimestre }}
@@ -418,22 +387,52 @@ onMounted(async () => {
     </section>
 
     <!-- ---------- Trabajos ---------- -->
-    <h2 class="sub-titulo">Trabajos</h2>
+    <div class="trabajos__cabecera">
+      <h2 class="sub-titulo sub-titulo--pegado">Trabajos</h2>
+      <!-- Filtrado de entrada, pero nunca a la fuerza: la cola es una y global,
+           y sin poder mirar los de fuera un trabajo «en cola» que no arranca no
+           tiene explicación en pantalla. -->
+      <label class="interruptor">
+        <input v-model="soloDelCorte" type="checkbox" :disabled="!elegido">
+        Solo los de este corte
+      </label>
+    </div>
+
+    <!-- El que corre no es de este corte: se deduce de la propia lista
+         filtrada —algo nuestro esperando y nada nuestro extrayendo— sin pedir
+         el histórico entero. -->
+    <p v-if="bloqueadaPorOtro" class="nota nota--cola">
+      Hay una extracción de otro corte en marcha. La cola es una sola y va de una
+      en una, así que lo de aquí espera su turno.
+      <button type="button" class="btn-link" @click="soloDelCorte = false">
+        Ver todos los trabajos →
+      </button>
+    </p>
+
     <div class="table-wrap table-wrap--scroll">
       <table class="table">
         <thead>
           <tr>
-            <th>Documento</th><th>Estado</th><th>Avance</th><th>Resultado</th><th />
+            <th>Documento</th>
+            <th v-if="!filtrando">Corte</th>
+            <th>Estado</th><th>Avance</th><th>Resultado</th><th />
           </tr>
         </thead>
         <tbody>
           <tr v-if="!trabajos.length">
-            <td colspan="5" class="empty">Todavía no hay ninguno.</td>
+            <td :colspan="filtrando ? 5 : 6" class="empty">
+              {{ filtrando ? 'Este corte todavía no tiene ninguno.' : 'Todavía no hay ninguno.' }}
+            </td>
           </tr>
 
           <template v-for="t in trabajos" :key="t.id">
             <tr>
               <td class="is-strong">{{ bonito(t.tipo) }}</td>
+              <!-- Solo sin filtro: con filtro todas las filas son del mismo
+                   corte y la columna repetiría el mismo valor. -->
+              <td v-if="!filtrando" class="celda-corte">
+                <span :class="{ 'es-otro': idCorteDe(t) !== elegido }">{{ corteDe(t) }}</span>
+              </td>
               <td>
                 <span :class="pillClass(tonoDe(t))">
                   {{ bonito(estadoDe(t)) }}{{ t.puesto_en_cola ? ` nº ${t.puesto_en_cola}` : '' }}
@@ -471,7 +470,7 @@ onMounted(async () => {
                  contador de páginas, la última línea del log, el error en crudo
                  y los CSV intermedios. Antes ocupaba la fila entera. -->
             <tr v-if="registroDe === t.id" class="detalle">
-              <td colspan="5">
+              <td :colspan="filtrando ? 5 : 6">
                 <dl class="detalle__datos">
                   <div v-if="t.archivos.length">
                     <dt>Archivos</dt>
@@ -521,6 +520,28 @@ onMounted(async () => {
 .nota { font-size: 13px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
 .nota--ok { color: var(--success); font-weight: 600; }
 .sub-titulo { font-size: 16px; font-weight: 700; color: var(--navy); margin: 24px 0 8px; }
+.sub-titulo--pegado { margin: 0; }
+
+.trabajos__cabecera {
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px; margin: 24px 0 8px;
+}
+.interruptor {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--muted); cursor: pointer; user-select: none;
+}
+.interruptor input { cursor: pointer; }
+.interruptor:has(input:disabled) { opacity: .5; cursor: default; }
+
+.nota--cola {
+  background: var(--teal-bg); border: 1px solid var(--border-2);
+  border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 12px;
+}
+
+.celda-corte { font-size: 12.5px; color: var(--muted); }
+/* Los de otro corte se apagan: en la vista sin filtro hay que poder localizar
+   los propios de un vistazo. */
+.celda-corte .es-otro { opacity: .65; font-style: italic; }
 
 .fila { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .fila > .field { flex: 1 1 14rem; min-width: 0; }

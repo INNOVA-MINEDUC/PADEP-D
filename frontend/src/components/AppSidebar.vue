@@ -13,7 +13,11 @@ function badgeState(index) {
 <template>
   <aside class="sidebar">
     <p class="sidebar__label">Seguimiento de cohorte</p>
-    <p class="sidebar__cohorte mono">{{ state.cohorte.codigo }}</p>
+    <!-- Sale del corte elegido, no de un formulario. Vacío mientras no haya
+         ninguno, en vez de un código de mentira que no existe en la base. -->
+    <p class="sidebar__cohorte mono">
+      {{ state.cohorte.codigo ? `Cohorte ${state.cohorte.codigo}` : 'Sin cohorte' }}
+    </p>
 
     <nav class="sidebar__nav" aria-label="Módulos del sistema">
       <div v-for="(mod, i) in NAV" :key="mod.id" class="sidebar__module">

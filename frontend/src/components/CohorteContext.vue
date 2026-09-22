@@ -1,7 +1,12 @@
 <script setup>
 import { usePadep, NAV } from '@/stores/padep'
+import { etiquetaCarrera } from '@/data/carreras'
 
 const { state, checklist, nextStepId, enlacesCount, goTo } = usePadep()
+
+// El corte no trae año: sus campos son cohorte, carrera, trimestre y corte. El
+// año vive en `anio_pago`, que solo se sabe después de cargar a la base, así
+// que aquí se enseña el trimestre, que sí viene siempre.
 
 const siguiente = () => {
   if (nextStepId.value === null) return
@@ -17,9 +22,14 @@ const siguienteLabel = () =>
   <div class="stack">
     <section class="card card--flat ctx">
       <p class="ctx__eyebrow">Resumen de cohorte</p>
-      <p class="ctx__codigo mono">{{ state.cohorte.codigo }}</p>
+      <p class="ctx__codigo mono">
+        {{ state.cohorte.codigo ? `Cohorte ${state.cohorte.codigo}` : 'Sin alta' }}
+      </p>
       <dl class="ctx__list">
-        <dt>Año</dt><dd>{{ state.cohorte.anio }}</dd>
+        <template v-if="state.cohorte.codigo">
+          <dt>Carrera</dt><dd>{{ etiquetaCarrera(state.cohorte.carrera) }}</dd>
+          <dt>Trimestre</dt><dd>{{ state.cohorte.trimestre }}</dd>
+        </template>
         <dt>Sedes</dt><dd>{{ state.sedes.length }}</dd>
         <dt>Enlaces asignados</dt><dd>{{ enlacesCount }}</dd>
       </dl>
@@ -66,5 +76,11 @@ const siguienteLabel = () =>
 .checklist__label { font-size: 13px; color: #8C9895; }
 .checklist__label.is-done { color: var(--text); font-weight: 600; }
 
-.ctx__next { width: 100%; }
+/* `.btn` es nowrap con alto fijo, y «Continuar: Asignación de Enlaces DIDEDUC»
+   no cabe en esta columna: se salía de la tarjeta por la izquierda. Aquí se le
+   deja partir en dos líneas y crecer. */
+.ctx__next {
+  width: 100%; height: auto; min-height: 40px; padding: 10px 16px;
+  white-space: normal; text-align: center; line-height: 1.35;
+}
 </style>

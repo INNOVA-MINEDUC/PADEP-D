@@ -1,6 +1,7 @@
 import { reactive, computed } from 'vue'
 import { GEO, NAV, SEED } from '@/data/catalog'
 import { entra, yo } from '@/api/auth'
+import { api } from '@/api/extraccion'
 import { guardaToken, hayToken, cuandoExpire } from '@/api/cliente'
 
 /**
@@ -32,9 +33,11 @@ const state = reactive({
   openModules: { m1: true, m2: false, m3: false, m4: false, m5: false },
 
   // --- Módulo 1: cohorte ---
-  cohorte: { codigo: 'COH-2026-01', anio: '2026', saved: true },
-  cohorteDraft: { codigo: 'COH-2026-01', anio: '2026' },
-  s1Touched: false,
+  // Ya no es un borrador que se teclea: sale del corte elegido en la API de
+  // extracción, que es donde vive el dato de verdad. Vacío mientras no haya
+  // ninguno —la API puede estar caída o no haber cortes todavía—, y las
+  // pantallas que lo enseñan pintan una raya en vez de un código inventado.
+  cohorte: { codigo: '', carrera: '', trimestre: null, id: '' },
 
   sedes: [
     { id: 's1', departamento: 'Chimaltenango', municipio: 'Chimaltenango', sede: 'EORM Chimaltenango No.1' },
@@ -110,7 +113,9 @@ const enlacesCount = computed(() => state.enlaces.length)
 
 /** Checklist de avance del módulo 1. */
 const checklist = computed(() => [
-  { label: 'Alta de cohorte',   done: state.cohorte.saved },
+  // Hecho cuando existe un corte de verdad, no cuando alguien pulsó «Guardar»
+  // en un formulario que no guardaba en ningún sitio.
+  { label: 'Alta de cohorte',   done: !!state.cohorte.codigo },
   { label: 'Sedes registradas', done: state.sedes.length > 0 },
   { label: 'Enlaces asignados', done: state.sedes.length > 0 && enlacesCount.value >= state.sedes.length },
 ])
@@ -138,6 +143,9 @@ const actions = {
       state.usuario = await entra(state.loginUser.trim(), state.loginPass)
       state.loggedIn = true
       state.loginPass = ''
+      // Sin await: el proxy de extracción exige el token, así que esto no podía
+      // salir antes del login, pero tampoco tiene por qué retrasar la entrada.
+      actions.refrescaCohorte()
     } catch (e) {
       // El backend contesta «Credenciales invalidas» sin decir si falló el
       // correo o la contraseña; se enseña tal cual.
@@ -156,6 +164,7 @@ const actions = {
       try {
         state.usuario = await yo()
         state.loggedIn = true
+        actions.refrescaCohorte()
       } catch (e) {
         guardaToken('')
       }
@@ -169,6 +178,7 @@ const actions = {
     state.loginPass = ''
     state.active = 1
     state.profileOpen = false
+    state.cohorte = { codigo: '', carrera: '', trimestre: null, id: '' }
   },
   toggleShowPass() { state.showPass = !state.showPass },
   toggleProfile()  { state.profileOpen = !state.profileOpen },
@@ -185,14 +195,28 @@ const actions = {
   submitTopSearch() { state.active = 9 },
 
   // --- Cohorte ---
-  saveCohorte(isValid) {
-    state.s1Touched = true
-    if (!isValid) return
-    state.cohorte = { ...state.cohorteDraft, saved: true }
-  },
-  cancelCohorte() {
-    state.cohorteDraft = { codigo: state.cohorte.codigo, anio: state.cohorte.anio }
-    state.s1Touched = false
+  /**
+   * Relee la cohorte a partir del corte elegido. La comparten el sidebar y las
+   * pantallas de consulta, que no piden cortes por su cuenta, así que se llama
+   * al arrancar y cada vez que S01 crea o cambia el corte.
+   *
+   * Falla en silencio a propósito: la API de extracción puede estar caída y eso
+   * no debe tumbar el resto de la aplicación —solo deja la cohorte vacía—.
+   *
+   * `elegido` se lee de localStorage, la misma llave que usa `usaCortes`: no
+   * hay un estado compartido entre pantallas, se comparte la llave.
+   */
+  async refrescaCohorte() {
+    try {
+      const cortes = await api.cortes()
+      const id = localStorage.getItem('padep.corte')
+      const c = cortes.find(x => x.id === id) ?? cortes[0]
+      state.cohorte = c
+        ? { codigo: c.cohorte, carrera: c.carrera, trimestre: c.trimestre, id: c.id }
+        : { codigo: '', carrera: '', trimestre: null, id: '' }
+    } catch (e) {
+      state.cohorte = { codigo: '', carrera: '', trimestre: null, id: '' }
+    }
   },
 
   // --- Sedes ---
