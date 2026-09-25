@@ -13,7 +13,8 @@ Contexto largo en `TRASPASO_FRONTEND.md` (actualizado). Esto es solo el delta.
 Un corte se identificaba con **tres** datos (cohorte, semestre, corte) y ahora
 se identifica con **cuatro**: cohorte, **carrera**, **trimestre**, corte.
 
-Y hay **una pantalla nueva** que no existía: los enlaces de DIDEDUC (punto 8).
+Y hay **una pantalla nueva** que no existía: la configuración de cohorte —sedes
+y enlaces de DIDEDUC— (punto 8).
 No tiene nada que ver con el cambio de eje; se puede dejar para después.
 
 ```
@@ -236,101 +237,178 @@ los rellena.
 
 Van en el paso de carga a la base, no en el de crear el corte.
 
-### 8. Pantalla nueva: los enlaces de DIDEDUC
+### 8. Pantalla nueva: configuración de cohorte (sedes y enlaces DIDEDUC)
 
-Nueve rutas que antes no existían. Es **la primera parte de la API que escribe
-en MySQL**, y no se parece al resto: aquí no hay PDF, ni extracción, ni entrega.
-Se crea gente y se le asigna un departamento.
+Un asistente de tres pasos —**Cohorte → Sedes → Enlaces**— y es **la primera
+parte de la API que escribe en MySQL**. No se parece al resto: aquí no hay PDF,
+ni extracción, ni entrega. Se da de alta la cohorte, se le ponen sedes y a cada
+sede se le asigna la persona de DIDEDUC que la lleva. **Todo esto pasa meses
+antes de que exista ningún PDF**; por eso las sedes se escriben a mano y no se
+esperan de la extracción.
 
-#### Las dos cosas, que son distintas
+> Cambió el 2026-09-16: hasta entonces el enlace se asignaba **por
+> departamento**. Ahora es **por sede**. Si ya había código contra
+> `/cohortes/{c}/enlaces/{id_departamento}`, hay que reescribirlo: la ruta es
+> la misma pero el último tramo es `id_cohorte_sede` y la lista devuelve sedes,
+> no departamentos.
+
+#### Las tres cosas, que son distintas
 
 ```
-la PERSONA        nombre, cargo, telefono, email          /enlaces
-la ASIGNACION     en esta cohorte, este departamento      /cohortes/{c}/enlaces
-                  lo lleva esta persona
+la COHORTE      codigo ('11'), nombre ('Onceava')        /cohortes
+la SEDE         una escuela, en un municipio, de esta    /cohortes/{c}/sedes
+                cohorte
+la PERSONA      nombre, cargo, telefono, email           /enlaces
+la ASIGNACION   esta sede de esta cohorte la lleva       /cohortes/{c}/enlaces/{sede}
+                esta persona
 ```
 
-**El departamento no es un campo de la persona.** Se crea el enlace sin
-departamento —eso es un estado normal, no un formulario a medias— y se asigna
-después, dentro de una cohorte. El motivo: la misma persona puede llevar
-Huehuetenango en la Onceava y otro departamento en la Doceava.
+**La sede no es un campo de la persona.** Se crea el enlace sin sede —eso es un
+estado normal, no un formulario a medias— y se asigna después, sede por sede,
+dentro de una cohorte. Una persona puede llevar **varias** sedes (lo normal es
+que cubra las de su departamento); una sede lleva **una** persona.
 
 #### Las rutas
 
 ```
-GET    /departamentos                              los 22, para el desplegable
-GET    /enlaces                                    las personas, con sus asignaciones
-POST   /enlaces                                    crear      → 201
-GET    /enlaces/{id}
-PUT    /enlaces/{id}                               editar
-DELETE /enlaces/{id}                               → 409 si está asignado
+GET    /cohortes                                  las de la base, con sedes y enlaces contados
+POST   /cohortes                                  codigo, nombre  → 201 · 409 si existe
 
-GET    /cohortes/{cohorte}/enlaces                 los 22 con su enlace
-PUT    /cohortes/{cohorte}/enlaces/{departamento}  asignar o reasignar
-DELETE /cohortes/{cohorte}/enlaces/{departamento}  dejarlo sin enlace
+GET    /departamentos                             los 22, primer desplegable
+GET    /departamentos/{id}/municipios             segundo desplegable
+GET    /municipios/{id}/escuelas                  tercer desplegable
+
+GET    /cohortes/{cohorte}/sedes                  las sedes, cada una con su enlace o null
+POST   /cohortes/{cohorte}/sedes                  id_municipio, escuela, [direccion] → 201
+DELETE /cohortes/{cohorte}/sedes/{id_cohorte_sede}   «Quitar» · 409 si tiene datos cargados
+
+GET    /enlaces                                   las personas, con sus asignaciones
+POST   /enlaces                                   crear      → 201
+GET    /enlaces/{id}
+PUT    /enlaces/{id}                              editar
+DELETE /enlaces/{id}                              → 409 si está asignado
+
+GET    /cohortes/{cohorte}/enlaces                = GET .../sedes (misma lista)
+PUT    /cohortes/{cohorte}/enlaces/{id_cohorte_sede}   asignar o reasignar
+DELETE /cohortes/{cohorte}/enlaces/{id_cohorte_sede}   dejar la sede sin enlace
 ```
 
 `{cohorte}` es el **código**: `11`. No el id de la base, y no el id del corte.
 
 `POST` y `PUT` van por formulario (`Form`), igual que el resto de la API.
-`/enlaces` toma `nombre` (obligatorio) + `cargo`, `telefono`, `email`;
-`/cohortes/{c}/enlaces/{d}` toma `id_enlace`.
 
-#### Las formas
+#### Paso 1: la cohorte
+
+`POST /cohortes` con `codigo=11&nombre=Onceava`. Si ya existe, 409 — y para la
+Onceava ya existe en la base local, porque nació con la primera carga. La
+pantalla puede pedir `GET /cohortes` y ofrecer elegir o crear.
+
+Carrera y trimestre **no van aquí**: son del corte, en disco (`POST /cortes`,
+punto 2 de este documento). La cohorte en MySQL solo lleva código y nombre.
+
+#### Paso 2: las sedes — los tres desplegables y un campo libre
+
+```
+GET /departamentos                → elige uno
+GET /departamentos/4/municipios   → elige uno
+GET /municipios/8/escuelas        → elige una... o escribe una nueva
+POST /cohortes/11/sedes   id_municipio=8  escuela=EORM Chimaltenango No.1
+```
+
+Dos cosas que hay que saber para pintarlo bien:
+
+- **Los catálogos de municipios y escuelas son lo que la base ha visto**, no el
+  listado oficial. Se llenan con las nóminas y los PDF cargados. Un municipio o
+  una escuela que falten **se escriben a mano**: el tercer desplegable tiene
+  que aceptar texto libre (un `<datalist>`, o un select con opción «otra…»).
+  Un municipio que falte hoy no se puede crear desde aquí; se avisa y se pide.
+- **La escuela va por nombre, no por id.** Si ya existe en ese municipio se
+  reutiliza; si no, se crea. Es la misma clave con la que el cargador la busca
+  cuando llegue el PDF de sedes, así que no se duplica. El formulario es el
+  mismo tanto si se eligió del desplegable como si se escribió.
+
+```json
+POST /cohortes/11/sedes   → 201
+{ "id_cohorte_sede": 126, "id_sede": 127, "correlativo": null,
+  "id_departamento": 4, "departamento": "Chimaltenango",
+  "id_municipio": 8, "municipio": "Chimaltenango",
+  "id_escuela": 127, "escuela": "EORM Chimaltenango No.1", "direccion": null,
+  "coordinador": null, "enlace": null }
+```
+
+`GET /cohortes/11/sedes` devuelve esa misma forma, una por sede, ordenadas por
+departamento, municipio, escuela. Con eso se pinta la tabla del paso 2 (las
+tres columnas) y el «Sedes: N» del resumen.
+
+**«Quitar» puede dar 409**, y hay que enseñarlo: una sede que ya tiene
+secciones con docentes cargados de un corte es del papel, y no se borra desde
+aquí. El `detail` lo dice. Quitar una sede sin datos se lleva también su
+enlace, y la respuesta trae `enlace_liberado` con el nombre.
+
+#### Paso 3: los enlaces, sede por sede
+
+```json
+GET /cohortes/11/enlaces      (idéntico a GET /cohortes/11/sedes)
+[{ "id_cohorte_sede": 126, "escuela": "EORM Chimaltenango No.1",
+   "municipio": "Chimaltenango", "departamento": "Chimaltenango", …,
+   "enlace": { "id_enlace": 15, "nombre": "Lucía Morán",
+               "cargo": "Supervisora educativa", "telefono": null,
+               "email": "lmoran@mineduc.gt" } },
+ { "id_cohorte_sede": 127, "escuela": "EORM Sololá Casco Urbano", …,
+   "enlace": null }]
+```
+
+**Devuelve todas las sedes, también las sin enlace.** La pantalla es «quién
+lleva cada sede» y la que está sin asignar es justo la fila que hay que
+rellenar — no la filtres, píntala como «Sin asignar» con un botón. «Enlaces
+asignados: N» del resumen es contar las que traen `enlace`.
+
+El botón «Registrar enlace nuevo» es `POST /enlaces`; el desplegable de
+personas para «Asignar» sale de `GET /enlaces`.
 
 ```json
 GET /enlaces
-[{ "id_enlace": 15, "nombre": "Ana Pérez", "cargo": "Coordinadora",
-   "telefono": "5555-0000", "email": "ana@mineduc.gob.gt",
+[{ "id_enlace": 15, "nombre": "Lucía Morán", "cargo": "Supervisora educativa",
+   "telefono": null, "email": "lmoran@mineduc.gt",
    "asignaciones": [
-     { "id_cohorte": 1, "cohorte": "11",
-       "id_departamento": 13, "departamento": "Huehuetenango" }] }]
+     { "id_cohorte": 1, "cohorte": "11", "id_cohorte_sede": 126,
+       "escuela": "EORM Chimaltenango No.1",
+       "municipio": "Chimaltenango", "departamento": "Chimaltenango" }] }]
 ```
-
-```json
-GET /cohortes/11/enlaces
-[{ "id_departamento": 16, "departamento": "Alta Verapaz", "enlace": null },
- { "id_departamento": 13, "departamento": "Huehuetenango",
-   "enlace": { "id_enlace": 15, "nombre": "Ana Pérez", "cargo": "…",
-               "telefono": "…", "email": "…" } }]
-```
-
-**Devuelve los 22 departamentos, también los que no tienen enlace.** La pantalla
-es «quién lleva cada departamento» y el que está sin asignar es justo la fila
-que hay que rellenar — no la filtres, píntala con un botón de asignar.
 
 #### `PUT` reasigna, y dice a quién desplazó
 
-Es `PUT` sobre el departamento y no `POST` a una lista porque **la asignación es
-el departamento**: asignar y reasignar son la misma operación, y repetir el
-mismo `PUT` no crea una segunda fila.
+Es `PUT` sobre la sede y no `POST` a una lista porque **la asignación es la
+sede**: asignar y reasignar son la misma operación, y repetir el mismo `PUT` no
+crea una segunda fila.
 
 ```json
-PUT /cohortes/11/enlaces/13   id_enlace=16
-{ "cohorte": "11", "departamento": "Huehuetenango", "enlace": "Luis Mo",
-  "id_enlace": 16, "id_departamento": 13,
-  "sustituyo": { "id_enlace": 15, "nombre": "Ana Pérez" } }
+PUT /cohortes/11/enlaces/126   id_enlace=16
+{ "cohorte": "11", "id_cohorte_sede": 126, "sede": "EORM Chimaltenango No.1",
+  "municipio": "Chimaltenango", "departamento": "Chimaltenango",
+  "enlace": "Luis Mo", "id_enlace": 16,
+  "sustituyo": { "id_enlace": 15, "nombre": "Lucía Morán" } }
 ```
 
-`sustituyo` es **`null`** si el departamento estaba libre, y también al repetir
-el mismo `PUT`. Cuando trae a alguien, esa persona **se ha quedado sin
-departamento** y hay que decirlo: un aviso después, o una confirmación antes
-—«Huehuetenango lo lleva Ana Pérez. ¿Reemplazar?»—. Lo que no vale es tragárselo:
-quien asigna puede no saber que el departamento ya tenía a otro.
+`sustituyo` es **`null`** si la sede estaba libre, y también al repetir el
+mismo `PUT`. Cuando trae a alguien, esa persona **ya no lleva esa sede** y hay
+que decirlo: un aviso después, o una confirmación antes —«EORM Chimaltenango
+No.1 la lleva Lucía Morán. ¿Reemplazar?»—. Lo que no vale es tragárselo.
 
-#### Los tres errores previstos
+#### Los errores previstos
 
 Ninguno es un fallo: todos traen un `detail` que se puede enseñar tal cual.
 
 | | |
 |---|---|
-| `409` al asignar | «Ana ya lleva Huehuetenango en esta cohorte. Una persona lleva un solo departamento; quítale ese primero.» |
-| `409` al borrar | «no se puede borrar a Ana: está asignado en Izabal (cohorte 11). Quita esas asignaciones primero.» |
-| `404` en cohorte | «no existe la cohorte 99 en la base. Se crea al cargar un corte suyo.» |
+| `409` al crear la cohorte | «la cohorte 11 ya existe» |
+| `409` al agregar sede | «EORM Chimaltenango No.1 ya es sede de la cohorte 11» |
+| `409` al quitar sede | «no se puede quitar …: tiene 2 sección(es) con datos cargados de un corte. Es una sede del papel.» |
+| `409` al borrar enlace | «no se puede borrar a Lucía Morán: está asignado en EORM Chimaltenango No.1 (cohorte 11). Quita esas asignaciones primero.» |
+| `404` en cohorte | «no existe la cohorte 99 en la base. Se crea con POST /cohortes, o al cargar un corte suyo.» |
+| `404` en sede | «esa sede no es de esta cohorte» |
 
-Ese último tiene truco: **la cohorte existe en la base solo después de cargar un
-corte suyo.** Una cohorte que solo está en disco todavía no tiene enlaces que
-asignar. Si la pantalla ofrece elegir cohorte, sácala de aquí y no de `/cortes`.
+Ya no hay 409 al asignar: una persona puede llevar varias sedes.
 
 #### Y una diferencia de criterio con el resto de la API
 
@@ -338,7 +416,7 @@ Si MySQL no responde, estas rutas devuelven **503**, no una lista vacía.
 
 Es a propósito y no contradice a `GET /cortes/{id}/carga`, que devuelve
 `disponible: false`: allí la base es un extra y la pantalla tiene que pintarse
-igual sin ella. Aquí la base es lo único que hay, y contestar «no hay enlaces»
+igual sin ella. Aquí la base es lo único que hay, y contestar «no hay sedes»
 cuando lo que pasa es que MySQL está caído sería mentir.
 
 ### 9. El histórico de trabajos se puede filtrar por corte

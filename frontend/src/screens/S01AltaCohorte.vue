@@ -15,16 +15,17 @@
  * estado en vez de un error, así que pulsar «Crear» encima de uno existente
  * simplemente lo selecciona.
  */
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
 import { usaCortes } from '@/composables/usaCortes'
+import { usaCohorte } from '@/composables/usaCohorte'
 import ModuleStepper from '@/components/ModuleStepper.vue'
 import CohorteContext from '@/components/CohorteContext.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import { CARRERAS, etiquetaCarrera } from '@/data/carreras'
 
-const { goTo, refrescaCohorte } = usePadep()
+const { state, goTo, refrescaCohorte } = usePadep()
 const { lista: cortes, elegido, carga: cargaCortes, elige } = usaCortes()
 
 const error = ref('')
@@ -41,7 +42,29 @@ const nuevo = ref({ ...CORTE_POR_DEFECTO })
 // Salida de emergencia por si algun dia hay dos entregas en el mismo trimestre.
 const corteVisible = ref(false)
 
+// La cohorte en la BASE (MySQL) es otra cosa que el corte en disco: solo lleva
+// codigo y nombre, y hace falta para registrar sedes y enlaces meses antes de
+// que exista ningun PDF. Nace sola al crear el corte (ver `crea`); la tarjeta
+// solo ofrece el alta a mano como respaldo. `null` = sin respuesta todavia (o
+// MySQL caido): no se ofrece darla de alta sin saber si ya esta.
+const { error: errorBase, ocupado: ocupadoBase, creaCohorte } = usaCohorte()
+const cohortesBase = ref(null)
+const enBase = computed(() => cohortesBase.value?.find(c => c.codigo === state.cohorte.codigo))
+
+const cargaBase = () => api.cohortes()
+  .then(l => { cohortesBase.value = l })
+  .catch(e => { errorBase.value = e.message })
+
+// Respaldo para cortes creados antes de que la cohorte naciera con ellos, o si
+// la base no respondio entonces. Un 409 («ya existe») tambien acaba bien: al
+// releer, aparece.
+async function altaBase() {
+  await creaCohorte({ codigo: state.cohorte.codigo })
+  await cargaBase()
+}
+
 onMounted(async () => {
+  cargaBase()
   try {
     await cargaCortes()
   } catch (e) {
@@ -68,6 +91,14 @@ async function conError(fn) {
 const crea = () => conError(async () => {
   const d = await api.creaCorte({ ...nuevo.value })
   elige(d.id)
+  // La misma «11» no se pide dos veces: la cohorte en la base nace aqui. Sin
+  // nombre, que lo rellena la primera carga (solo completa lo vacio). Aparte
+  // del corte a proposito: si MySQL falla, el corte ya esta creado y la tarjeta
+  // ofrece reintentar. El 409 es el caso normal —ya existia— y no se ensena.
+  errorBase.value = ''
+  await api.creaCohorte({ codigo: d.cohorte })
+    .catch(e => { if (e.estado !== 409) errorBase.value = e.message })
+  cargaBase()
   nuevo.value = { ...CORTE_POR_DEFECTO }
   corteVisible.value = false
 })
@@ -164,6 +195,24 @@ const etiqueta = (c) => {
               de pantallas.
               <button type="button" class="btn-link" @click="goTo(15)">
                 Ir a Extracción →
+              </button>
+            </p>
+          </div>
+        </section>
+
+        <section v-if="state.cohorte.codigo" class="card card--flat">
+          <div class="card__head">Cohorte {{ state.cohorte.codigo }} en la base de datos</div>
+          <div class="card__body">
+            <AvisoError :mensaje="errorBase" />
+            <p v-if="enBase" class="nota">
+              {{ enBase.nombre || 'Sin nombre' }} · {{ enBase.sedes }} sedes ·
+              {{ enBase.enlaces_asignados }} con enlace.
+              <button type="button" class="btn-link" @click="goTo(2)">Configurar sedes →</button>
+            </p>
+            <p v-else-if="cohortesBase" class="nota">
+              Todavía no está: hace falta para registrar sus sedes y enlaces.
+              <button type="button" class="btn-link" :disabled="ocupadoBase" @click="altaBase">
+                Dar de alta en la base →
               </button>
             </p>
           </div>

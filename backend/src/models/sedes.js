@@ -50,11 +50,13 @@ export default (sequelize, DataTypes) => {
 
   const CohorteEnlace = sequelize.define('CohorteEnlace', {
     id_cohorte_enlace: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    id_cohorte: { type: DataTypes.INTEGER, allowNull: false },
+    // v4.2: la asignacion es POR SEDE de la cohorte (la cohorte viene por
+    // CohorteSede). Una sede lleva una persona; una persona, varias sedes.
+    id_cohorte_sede: { type: DataTypes.INTEGER, allowNull: false },
     id_enlace: { type: DataTypes.INTEGER, allowNull: false },
   }, {
     tableName: 'CohorteEnlace',
-    indexes: [{ name: 'uq_cohorte_enlace', unique: true, fields: ['id_cohorte', 'id_enlace'] }],
+    indexes: [{ name: 'uq_ce_sede', unique: true, fields: ['id_cohorte_sede'] }],
   });
 
   return { Coordinador, Sede, CohorteSede, Seccion, EnlaceDIDEDUC, CohorteEnlace };

@@ -27,7 +27,7 @@ export default (sequelize, DataTypes) => {
   const SituacionLaboral = sequelize.define('SituacionLaboral', {
     id_situacion: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     id_inscripcion: { type: DataTypes.INTEGER, allowNull: false },
-    id_semestre: { type: DataTypes.INTEGER, allowNull: true },
+    id_trimestre: { type: DataTypes.INTEGER, allowNull: true },
     id_escuela: { type: DataTypes.INTEGER, allowNull: true },
     id_escalafon: { type: DataTypes.INTEGER, allowNull: true },
     id_jornada: { type: DataTypes.INTEGER, allowNull: true },
@@ -36,7 +36,7 @@ export default (sequelize, DataTypes) => {
   }, {
     tableName: 'SituacionLaboral',
     indexes: [
-      { name: 'uq_situacion', unique: true, fields: ['id_inscripcion', 'id_semestre'] },
+      { name: 'uq_situacion', unique: true, fields: ['id_inscripcion', 'id_trimestre'] },
       { name: 'idx_sitlab_escuela', fields: ['id_escuela'] },
     ],
   });

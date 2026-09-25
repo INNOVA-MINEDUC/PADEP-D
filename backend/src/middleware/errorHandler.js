@@ -32,7 +32,7 @@ export function errorHandler(err, _req, res, _next) {
   }
 
   // Errores lanzados desde los hooks (triggers) llegan como Error normal.
-  if (err && typeof err.message === 'string' && /obligatorio|4 semestres/.test(err.message)) {
+  if (err && typeof err.message === 'string' && /obligatorio/.test(err.message)) {
     return res.status(400).json({ error: err.message });
   }
 

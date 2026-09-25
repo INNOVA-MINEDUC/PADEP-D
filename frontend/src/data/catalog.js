@@ -1,22 +1,7 @@
 /**
- * Catálogo estático del prototipo: geografía, navegación y datos semilla.
- * Reemplazar por llamadas a la API cuando exista backend.
+ * Catálogo estático del prototipo: navegación y datos semilla. La geografía ya
+ * sale de la API (`/departamentos`, `/municipios`), no de aquí.
  */
-
-export const GEO = {
-  Chimaltenango: {
-    Chimaltenango: ['EORM Chimaltenango No.1', 'Colegio San José'],
-    'Tecpán Guatemala': ['EORM Tecpán Central'],
-  },
-  Sololá: {
-    Sololá: ['EORM Sololá Casco Urbano'],
-    Panajachel: ['Escuela Panajachel'],
-  },
-  Quetzaltenango: {
-    Quetzaltenango: ['EORM Quetzaltenango Norte'],
-    Salcajá: ['EORM Salcajá'],
-  },
-}
 
 /** Módulos y pantallas del sidebar. El id de pantalla es la ruta interna. */
 export const NAV = [

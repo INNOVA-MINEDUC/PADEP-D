@@ -10,6 +10,8 @@ export default (sequelize, DataTypes) => {
     sexo: { type: DataTypes.ENUM('F', 'M'), allowNull: true },
     cohorte_codigo: { type: DataTypes.STRING(30), allowNull: true },
     cohorte_nombre: { type: DataTypes.STRING(60), allowNull: true },
+    // La columna 'codigo' de la nomina ('35'): es de la CARRERA, no de la cohorte.
+    carrera_codigo: { type: DataTypes.STRING(30), allowNull: true },
     carrera_texto: { type: DataTypes.STRING(200), allowNull: true },
     municipio_texto: { type: DataTypes.STRING(120), allowNull: true },
     departamento_texto: { type: DataTypes.STRING(120), allowNull: true },

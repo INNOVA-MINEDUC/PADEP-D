@@ -4,18 +4,14 @@
 // Existe aparte de `seed.js` por una linea: aquel empieza con
 // `sequelize.sync({ alter: true })` y aqui no se sincroniza nada.
 //
-// El motivo. Los modelos de este backend todavia describen el esquema v3
-// —`models/programa.js` define `Semestre` y `Corte.id_semestre`— y la base ya
-// esta en v4: no hay `Semestre`, hay `Trimestre`, y `Corte` lleva
-// `id_trimestre`. Un `alter: true` intentaria reconciliar las dos cosas
-// recreando `Semestre` y reformando `Corte` encima de datos ya cargados.
+// El motivo. `alter: true` reescribe tablas cargadas sin avisar. Los modelos
+// ya describen el esquema v4.2 (`Trimestre`, `CohorteEnlace` por sede), pero
+// el esquema de verdad es `padep_schema_v4.sql` —vistas, CHECK, triggers— y
+// ningun sync lo reproduce entero. La base no se sincroniza desde aqui.
 //
 // Las cuatro tablas de auth son de este backend y coinciden con sus modelos,
 // asi que insertar en ellas no toca nada del esquema de extraccion. Todo va con
 // findOrCreate: correrlo dos veces no duplica ni pisa nada.
-//
-// Cuando los modelos se pasen a v4, esto vuelve a ser innecesario y `seed.js`
-// sirve otra vez.
 import db from '../models/index.js';
 import env from '../config/env.js';
 import { ROLE_NAMES, ADMIN_ROLE } from '../config/roles.js';

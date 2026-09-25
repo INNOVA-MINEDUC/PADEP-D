@@ -2,25 +2,22 @@
 import { usePadep } from '@/stores/padep'
 import { useEscape } from '@/utils/useEscape'
 
-const { state, cancelRemoveSede, confirmRemoveSede } = usePadep()
+const { state, cierraConfirmacion, aceptaConfirmacion } = usePadep()
 
-useEscape(() => { if (state.deleteModal.open) cancelRemoveSede() })
+useEscape(() => { if (state.confirmacion.open) cierraConfirmacion() })
 </script>
 
 <template>
   <div
-    v-if="state.deleteModal.open"
+    v-if="state.confirmacion.open"
     class="overlay"
-    @click.self="cancelRemoveSede">
+    @click.self="cierraConfirmacion">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-      <h2 id="confirm-title" class="dialog__title">Quitar sede de la cohorte</h2>
-      <p class="dialog__body">
-        ¿Seguro que deseas quitar <strong>{{ state.deleteModal.sedeName }}</strong>?
-        Esta acción no elimina al docente, solo su sede en esta cohorte.
-      </p>
+      <h2 id="confirm-title" class="dialog__title">{{ state.confirmacion.titulo }}</h2>
+      <p class="dialog__body">{{ state.confirmacion.mensaje }}</p>
       <div class="dialog__actions">
-        <button class="btn btn--outline" @click="cancelRemoveSede">Cancelar</button>
-        <button class="btn btn--danger" @click="confirmRemoveSede">Quitar</button>
+        <button class="btn btn--outline" @click="cierraConfirmacion">Cancelar</button>
+        <button class="btn btn--danger" @click="aceptaConfirmacion">{{ state.confirmacion.boton }}</button>
       </div>
     </div>
   </div>

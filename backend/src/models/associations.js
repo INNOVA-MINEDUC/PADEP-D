@@ -1,13 +1,13 @@
 import bcrypt from 'bcryptjs';
 import env from '../config/env.js';
 
-// Define TODAS las relaciones (FK) del esquema v3 y los hooks que
+// Define TODAS las relaciones (FK) del esquema v4.2 y los hooks que
 // reemplazan a los triggers/columnas generadas que sequelize.sync() no crea.
 export default (db) => {
   const {
     Departamento, Municipio, Idioma, Etnia, Escalafon, Jornada, DireccionMineduc, TipoEscuela, Escuela,
     Rol, Permiso, RolPermiso, Usuario,
-    Carrera, Cohorte, Semestre, Corte,
+    Carrera, Cohorte, Trimestre, Corte,
     Coordinador, Sede, CohorteSede, Seccion, EnlaceDIDEDUC, CohorteEnlace,
     TipoDocumento, Documento, Extraccion,
     Docente, Catedratico, CatedraticoNivel, CatedraticoSede,
@@ -40,8 +40,8 @@ export default (db) => {
 
   // ---- Programa academico ----
   link(Cohorte, DireccionMineduc, 'id_direccion', SETNULL);
-  link(Semestre, Cohorte, 'id_cohorte', CASCADE);
-  link(Corte, Semestre, 'id_semestre', CASCADE);
+  link(Trimestre, Cohorte, 'id_cohorte', CASCADE);
+  link(Corte, Trimestre, 'id_trimestre', CASCADE);
 
   // ---- Sedes ----
   link(Sede, Escuela, 'id_escuela', RESTRICT);
@@ -51,12 +51,13 @@ export default (db) => {
   link(CohorteSede, Coordinador, 'id_coordinador', SETNULL);
   link(Seccion, CohorteSede, 'id_cohorte_sede', CASCADE);
   link(Seccion, Carrera, 'id_carrera', RESTRICT);
-  link(CohorteEnlace, Cohorte, 'id_cohorte', CASCADE);
+  link(CohorteEnlace, CohorteSede, 'id_cohorte_sede', CASCADE);
   link(CohorteEnlace, EnlaceDIDEDUC, 'id_enlace', RESTRICT);
 
   // ---- Archivos ----
   link(Documento, Corte, 'id_corte', CASCADE);
   link(Documento, Cohorte, 'id_cohorte', RESTRICT);
+  link(Documento, Carrera, 'id_carrera', RESTRICT);
   link(Documento, TipoDocumento, 'id_tipo', RESTRICT);
   link(Documento, Usuario, 'id_usuario', SETNULL);
   link(Extraccion, Documento, 'id_documento', CASCADE);
@@ -77,7 +78,7 @@ export default (db) => {
   link(Inscripcion, Seccion, 'id_seccion', SETNULL);
   link(Inscripcion, Extraccion, 'id_extraccion', SETNULL);
   link(SituacionLaboral, Inscripcion, 'id_inscripcion', CASCADE);
-  link(SituacionLaboral, Semestre, 'id_semestre', CASCADE);
+  link(SituacionLaboral, Trimestre, 'id_trimestre', CASCADE);
   link(SituacionLaboral, Escuela, 'id_escuela', SETNULL);
   link(SituacionLaboral, Escalafon, 'id_escalafon', SETNULL);
   link(SituacionLaboral, Jornada, 'id_jornada', SETNULL);
@@ -158,16 +159,8 @@ export default (db) => {
     );
   });
 
-  // -- trg_semestre_max: una cohorte no puede tener mas de 4 semestres --
-  Semestre.beforeCreate(async (sem, options) => {
-    const n = await Semestre.count({
-      where: { id_cohorte: sem.id_cohorte },
-      transaction: options.transaction,
-    });
-    if (n >= 4) {
-      throw new Error('la cohorte ya tiene sus 4 semestres');
-    }
-  });
+  // Sin equivalente de trg_semestre_max: v4 retiro el tope de trimestres
+  // porque no se sabe cuantos tiene una cohorte. Queda el CHECK 1..12.
 
   // -- updated_at automatico en las tablas que lo declaran --
   for (const model of [Cohorte, Corte, Docente, Inscripcion]) {

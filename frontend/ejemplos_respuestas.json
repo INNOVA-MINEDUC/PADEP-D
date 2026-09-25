@@ -127,7 +127,69 @@
       "falta_para_entregar": []
     }
   ],
-  "/extracciones": [],
+  "/extracciones": [
+    {
+      "id": "2ff0b54eda4d",
+      "tipo": "entrega",
+      "cohorte": "11",
+      "carrera": "36",
+      "trimestre": 6,
+      "corte": 1,
+      "estado": "terminado",
+      "creado": "2026-08-05T17:29:55+00:00",
+      "iniciado": "2026-08-05T17:29:55+00:00",
+      "terminado": "2026-08-05T17:32:47+00:00",
+      "paginas_hechas": 0,
+      "paginas_totales": 0,
+      "archivos": [],
+      "salidas": [
+        "PADEP_36_final.xlsx",
+        "asistencia_extraida.csv",
+        "... 8 mas (recortado)"
+      ],
+      "origen": [],
+      "etiquetas": {},
+      "ultima_linea": "revisar: 267 indicios",
+      "error": "",
+      "puesto_en_cola": 0
+    },
+    {
+      "id": "3105b52b6750",
+      "tipo": "entrega",
+      "cohorte": "11",
+      "carrera": "36",
+      "trimestre": 6,
+      "corte": 1,
+      "estado": "terminado",
+      "creado": "2026-08-05T16:38:47+00:00",
+      "iniciado": "2026-08-05T16:38:47+00:00",
+      "terminado": "2026-08-05T16:40:10+00:00",
+      "paginas_hechas": 0,
+      "paginas_totales": 0,
+      "archivos": [],
+      "salidas": [
+        "PADEP_36_final.xlsx",
+        "asistencia_extraida.csv",
+        "... 8 mas (recortado)"
+      ],
+      "origen": [],
+      "etiquetas": {},
+      "ultima_linea": "revisar: 255 indicios",
+      "error": "",
+      "puesto_en_cola": 0
+    },
+    "... 13 mas (recortado)"
+  ],
+  "/cohortes": [
+    {
+      "id_cohorte": 1,
+      "codigo": "11",
+      "nombre": "Onceava",
+      "estatus": "activa",
+      "sedes": 125,
+      "enlaces_asignados": 0
+    }
+  ],
   "/departamentos": [
     {
       "id_departamento": 16,
@@ -139,19 +201,86 @@
     },
     "... 20 mas (recortado)"
   ],
-  "/enlaces": [],
-  "/cohortes/11/enlaces": [
+  "/departamentos/4/municipios": [
     {
+      "id_municipio": 8,
+      "nombre": "Chimaltenango"
+    },
+    {
+      "id_municipio": 9,
+      "nombre": "Patzicía"
+    },
+    "... 3 mas (recortado)"
+  ],
+  "/municipios/8/escuelas": [
+    {
+      "id_escuela": 8,
+      "nombre": "Escuela Normal Rural No. 1 Dr. Pedro Molina",
+      "direccion": "Finca La Alameda Chimaltenango"
+    }
+  ],
+  "/enlaces": [],
+  "/cohortes/11/sedes": [
+    {
+      "id_cohorte_sede": 108,
+      "id_sede": 108,
+      "correlativo": 1,
       "id_departamento": 16,
       "departamento": "Alta Verapaz",
+      "id_municipio": 108,
+      "municipio": "San Juan Chamelco",
+      "id_escuela": 108,
+      "escuela": "Escuela Oficial Urbana Mixta \"Manuel Alberto Ramirez Fernandez\"",
+      "direccion": "3a. Calle 4-99 zona 4, San Juan Chamelco, Alta Verapaz",
+      "coordinador": "Estela Loreni Leonardo Urizar",
       "enlace": null
     },
     {
-      "id_departamento": 15,
-      "departamento": "Baja Verapaz",
+      "id_cohorte_sede": 1,
+      "id_sede": 1,
+      "correlativo": 1,
+      "id_departamento": 16,
+      "departamento": "Alta Verapaz",
+      "id_municipio": 1,
+      "municipio": "San Miguel Tucurú",
+      "id_escuela": 1,
+      "escuela": "Escuela Oficial Urbana Mixta Hercilia Paz López",
+      "direccion": "Barrio El Centro, San Miguel Tucurú, Alta Verapaz",
+      "coordinador": "Vitalino Alexander de los Santos Gómez",
       "enlace": null
     },
-    "... 20 mas (recortado)"
+    "... 123 mas (recortado)"
+  ],
+  "/cohortes/11/enlaces": [
+    {
+      "id_cohorte_sede": 108,
+      "id_sede": 108,
+      "correlativo": 1,
+      "id_departamento": 16,
+      "departamento": "Alta Verapaz",
+      "id_municipio": 108,
+      "municipio": "San Juan Chamelco",
+      "id_escuela": 108,
+      "escuela": "Escuela Oficial Urbana Mixta \"Manuel Alberto Ramirez Fernandez\"",
+      "direccion": "3a. Calle 4-99 zona 4, San Juan Chamelco, Alta Verapaz",
+      "coordinador": "Estela Loreni Leonardo Urizar",
+      "enlace": null
+    },
+    {
+      "id_cohorte_sede": 1,
+      "id_sede": 1,
+      "correlativo": 1,
+      "id_departamento": 16,
+      "departamento": "Alta Verapaz",
+      "id_municipio": 1,
+      "municipio": "San Miguel Tucurú",
+      "id_escuela": 1,
+      "escuela": "Escuela Oficial Urbana Mixta Hercilia Paz López",
+      "direccion": "Barrio El Centro, San Miguel Tucurú, Alta Verapaz",
+      "coordinador": "Vitalino Alexander de los Santos Gómez",
+      "enlace": null
+    },
+    "... 123 mas (recortado)"
   ],
   "/cortes/{id}": {
     "id": "11-car35-t6-c1",
@@ -375,7 +504,7 @@
     "cuentas": {
       "notas": 7270,
       "asistencia": 25366,
-      "incidencias": 319,
+      "incidencias": 64,
       "documentos": 14
     }
   }

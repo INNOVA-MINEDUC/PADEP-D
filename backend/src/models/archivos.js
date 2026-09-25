@@ -12,6 +12,9 @@ export default (sequelize, DataTypes) => {
     id_documento: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     id_corte: { type: DataTypes.INTEGER, allowNull: true },
     id_cohorte: { type: DataTypes.INTEGER, allowNull: false },
+    // De que carrera es el archivo (un corte trae PDF de la 35 y de la 36).
+    // NULL = documento de la cohorte entera.
+    id_carrera: { type: DataTypes.INTEGER, allowNull: true },
     id_tipo: { type: DataTypes.INTEGER, allowNull: false },
     nombre_archivo: { type: DataTypes.STRING(255), allowNull: false },
     almacenamiento: { type: DataTypes.ENUM('local', 'bucket'), allowNull: false, defaultValue: 'local' },
@@ -24,7 +27,7 @@ export default (sequelize, DataTypes) => {
   }, {
     tableName: 'Documento',
     indexes: [
-      { name: 'uq_documento', unique: true, fields: ['id_cohorte', 'id_corte', 'id_tipo', 'nombre_archivo'] },
+      { name: 'uq_documento', unique: true, fields: ['id_cohorte', 'id_corte', 'id_carrera', 'id_tipo', 'nombre_archivo'] },
       { name: 'idx_documento_sha', fields: ['sha256'] },
       { name: 'idx_documento_corte', fields: ['id_corte', 'id_tipo'] },
     ],

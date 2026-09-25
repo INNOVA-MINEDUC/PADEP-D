@@ -68,4 +68,27 @@ export const api = {
   // vuelve a la pagina 1. Esto devuelve una hoja de ~276 KB.
   abrePagina: (id, pdf, n) =>
     abreEnPestana(`${RAIZ}/cortes/${id}/pagina/${encodeURIComponent(pdf)}/${n}`),
+
+  // Configuracion de cohorte (MySQL). `c` es el CODIGO de la cohorte ('11'), no
+  // su id ni el del corte. Si la base no responde, 503: nunca una lista vacia.
+  cohortes: () => pide(`${RAIZ}/cohortes`),
+  creaCohorte: (campos) => pide(`${RAIZ}/cohortes`, { method: 'POST', body: forma(campos) }),
+
+  departamentos: () => pide(`${RAIZ}/departamentos`),
+  municipios: (idDep) => pide(`${RAIZ}/departamentos/${idDep}/municipios`),
+  escuelas: (idMun) => pide(`${RAIZ}/municipios/${idMun}/escuelas`),
+
+  sedes: (c) => pide(`${RAIZ}/cohortes/${c}/sedes`),
+  agregaSede: (c, campos) => pide(`${RAIZ}/cohortes/${c}/sedes`, { method: 'POST', body: forma(campos) }),
+  quitaSede: (c, idCs) => pide(`${RAIZ}/cohortes/${c}/sedes/${idCs}`, { method: 'DELETE' }),
+
+  enlaces: () => pide(`${RAIZ}/enlaces`),
+  creaEnlace: (campos) => pide(`${RAIZ}/enlaces`, { method: 'POST', body: forma(campos) }),
+  editaEnlace: (id, campos) => pide(`${RAIZ}/enlaces/${id}`, { method: 'PUT', body: forma(campos) }),
+  borraEnlace: (id) => pide(`${RAIZ}/enlaces/${id}`, { method: 'DELETE' }),
+
+  // La asignacion ES la sede: asignar y reasignar son el mismo PUT.
+  asigna: (c, idCs, idEnlace) =>
+    pide(`${RAIZ}/cohortes/${c}/enlaces/${idCs}`, { method: 'PUT', body: forma({ id_enlace: idEnlace }) }),
+  desasigna: (c, idCs) => pide(`${RAIZ}/cohortes/${c}/enlaces/${idCs}`, { method: 'DELETE' }),
 }

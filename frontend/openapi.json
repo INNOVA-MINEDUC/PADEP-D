@@ -1090,6 +1090,78 @@
         }
       }
     },
+    "/cohortes": {
+      "get": {
+        "summary": "Las cohortes que hay en la base",
+        "description": "Con cuántas sedes tiene cada una y cuántas llevan enlace: es el\n«resumen de cohorte» de la pantalla.",
+        "operationId": "listar_cohortes_cohortes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Cohortes Cohortes Get"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      },
+      "post": {
+        "summary": "Da de alta una cohorte",
+        "description": "`codigo` es el que usa el resto de la API (`11`); `nombre`, el que se\ndice («Onceava»). Antes la cohorte nacía con la primera carga; sigue\nnaciendo ahí si nadie la creó, pero así se puede configurar —sedes y\nenlaces— meses antes de que exista ningún PDF.",
+        "operationId": "crear_cohorte_cohortes_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_crear_cohorte_cohortes_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Crear Cohorte Cohortes Post"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/departamentos": {
       "get": {
         "summary": "Los 22 departamentos, para el desplegable",
@@ -1112,6 +1184,278 @@
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
+    },
+    "/departamentos/{id_departamento}/municipios": {
+      "get": {
+        "summary": "Los municipios de un departamento que la base conoce",
+        "description": "No es el listado oficial: es lo que las nóminas y los PDF cargados han\ntraído. Un municipio que falte se escribe a mano al agregar la sede.",
+        "operationId": "listar_municipios_departamentos__id_departamento__municipios_get",
+        "parameters": [
+          {
+            "name": "id_departamento",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Departamento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Listar Municipios Departamentos  Id Departamento  Municipios Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/municipios/{id_municipio}/escuelas": {
+      "get": {
+        "summary": "Los centros educativos de un municipio que la base conoce",
+        "description": "Mismo aviso. Uno que falte se escribe a mano al agregar la sede.",
+        "operationId": "listar_escuelas_municipios__id_municipio__escuelas_get",
+        "parameters": [
+          {
+            "name": "id_municipio",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Municipio"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Listar Escuelas Municipios  Id Municipio  Escuelas Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cohortes/{cohorte}/sedes": {
+      "get": {
+        "summary": "Las sedes de la cohorte, cada una con su enlace o sin él",
+        "description": "La misma lista sirve a las dos pantallas —«Sedes» y «Enlaces»—: la\nsegunda es la primera con una columna más, y `enlace: null` es la fila que\nhay que rellenar. No la filtres, píntala con un botón de asignar.",
+        "operationId": "sedes_de_cohorte_cohortes__cohorte__sedes_get",
+        "parameters": [
+          {
+            "name": "cohorte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cohorte"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Sedes De Cohorte Cohortes  Cohorte  Sedes Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Agrega una sede a la cohorte",
+        "description": "La escuela va por **nombre**: si ya existe en ese municipio se reutiliza\n—es la misma clave con la que la busca el cargador— y si no, se crea. Así el\ndesplegable de `GET /municipios/{id}/escuelas` y el campo libre para una\nnueva mandan el mismo formulario. 409 si ya es sede de la cohorte.",
+        "operationId": "agregar_sede_cohortes__cohorte__sedes_post",
+        "parameters": [
+          {
+            "name": "cohorte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cohorte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_agregar_sede_cohortes__cohorte__sedes_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Agregar Sede Cohortes  Cohorte  Sedes Post"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+          },
+          "409": {
+            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cohortes/{cohorte}/sedes/{id_cohorte_sede}": {
+      "delete": {
+        "summary": "Quita una sede de la cohorte",
+        "description": "Se lleva su asignación de enlace. **409 si la sede tiene secciones**:\nesas vienen de la carga de un corte y de ellas cuelgan inscripciones; una\nsede con datos cargados es del papel y no se borra desde aquí.",
+        "operationId": "quitar_sede_cohortes__cohorte__sedes__id_cohorte_sede__delete",
+        "parameters": [
+          {
+            "name": "cohorte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cohorte"
+            }
+          },
+          {
+            "name": "id_cohorte_sede",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Cohorte Sede"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Quitar Sede Cohortes  Cohorte  Sedes  Id Cohorte Sede  Delete"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+          },
+          "409": {
+            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -1143,7 +1487,7 @@
       },
       "post": {
         "summary": "Crea un enlace",
-        "description": "La persona se crea sin departamento: se asigna después, y en la cohorte.\n\nUn enlace recién creado y todavía sin asignar es un estado legítimo — por\neso la asignación es otra ruta y no un campo de esta.",
+        "description": "La persona se crea sin sede: se asigna después, y en la cohorte.\n\nUn enlace recién creado y todavía sin asignar es un estado legítimo — por\neso la asignación es otra ruta y no un campo de esta.",
         "operationId": "crear_enlace_enlaces_post",
         "requestBody": {
           "content": {
@@ -1213,7 +1557,7 @@
             }
           },
           "404": {
-            "description": "no existe (enlace, departamento o cohorte). La cohorte aparece en la base al cargar un corte suyo."
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1269,7 +1613,7 @@
             }
           },
           "404": {
-            "description": "no existe (enlace, departamento o cohorte). La cohorte aparece en la base al cargar un corte suyo."
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1288,7 +1632,7 @@
       },
       "delete": {
         "summary": "Borra un enlace sin asignaciones",
-        "description": "**409 si está asignado**, diciendo dónde. Borrarlo en cascada se llevaría\nla asignación de un departamento sin que nadie lo pidiera; por eso la clave\nforánea es RESTRICT y aquí se explica en vez de dejar salir el 1451.",
+        "description": "**409 si está asignado**, diciendo dónde. Borrarlo en cascada se llevaría\nla asignación de una sede sin que nadie lo pidiera; por eso la clave\nforánea es RESTRICT y aquí se explica en vez de dejar salir el 1451.",
         "operationId": "borrar_enlace_enlaces__id_enlace__delete",
         "parameters": [
           {
@@ -1315,10 +1659,10 @@
             }
           },
           "404": {
-            "description": "no existe (enlace, departamento o cohorte). La cohorte aparece en la base al cargar un corte suyo."
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
           },
           "409": {
-            "description": "la operacion choca con una regla: la persona ya lleva otro departamento en la cohorte, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1338,8 +1682,8 @@
     },
     "/cohortes/{cohorte}/enlaces": {
       "get": {
-        "summary": "Quién lleva cada departamento en esa cohorte",
-        "description": "Devuelve **los 22 departamentos**, con `enlace: null` los que no tienen.\n\nLa pantalla es «quién lleva cada departamento», y el que está sin asignar es\njusto la fila que hay que rellenar.",
+        "summary": "Quién lleva cada sede en esa cohorte",
+        "description": "Es exactamente `GET /cohortes/{cohorte}/sedes`: la pantalla de enlaces\nes la de sedes con una columna más. Se conserva la ruta porque es la que\ndice lo que se está mirando.",
         "operationId": "enlaces_de_cohorte_cohortes__cohorte__enlaces_get",
         "parameters": [
           {
@@ -1369,7 +1713,7 @@
             }
           },
           "404": {
-            "description": "no existe (enlace, departamento o cohorte). La cohorte aparece en la base al cargar un corte suyo."
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1387,11 +1731,11 @@
         }
       }
     },
-    "/cohortes/{cohorte}/enlaces/{id_departamento}": {
+    "/cohortes/{cohorte}/enlaces/{id_cohorte_sede}": {
       "put": {
-        "summary": "Asigna (o cambia) el enlace de un departamento",
-        "description": "PUT sobre el departamento porque **la asignación es el departamento**:\nreasignar es la misma operación que asignar, y repetirla no crea una segunda\nfila. Devuelve 409 si esa persona ya lleva otro departamento en la cohorte,\ndiciendo cuál.",
-        "operationId": "asignar_enlace_cohortes__cohorte__enlaces__id_departamento__put",
+        "summary": "Asigna (o cambia) el enlace de una sede",
+        "description": "PUT sobre la sede porque **la asignación es la sede**: reasignar es la\nmisma operación que asignar, y repetirla no crea una segunda fila. Si había\notro, vuelve en `sustituyo` para que la pantalla avise. Una persona puede\nllevar varias sedes.",
+        "operationId": "asignar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__put",
         "parameters": [
           {
             "name": "cohorte",
@@ -1403,12 +1747,12 @@
             }
           },
           {
-            "name": "id_departamento",
+            "name": "id_cohorte_sede",
             "in": "path",
             "required": true,
             "schema": {
               "type": "integer",
-              "title": "Id Departamento"
+              "title": "Id Cohorte Sede"
             }
           }
         ],
@@ -1417,7 +1761,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/Body_asignar_enlace_cohortes__cohorte__enlaces__id_departamento__put"
+                "$ref": "#/components/schemas/Body_asignar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__put"
               }
             }
           }
@@ -1430,16 +1774,13 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Asignar Enlace Cohortes  Cohorte  Enlaces  Id Departamento  Put"
+                  "title": "Response Asignar Enlace Cohortes  Cohorte  Enlaces  Id Cohorte Sede  Put"
                 }
               }
             }
           },
           "404": {
-            "description": "no existe (enlace, departamento o cohorte). La cohorte aparece en la base al cargar un corte suyo."
-          },
-          "409": {
-            "description": "la operacion choca con una regla: la persona ya lleva otro departamento en la cohorte, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1457,8 +1798,8 @@
         }
       },
       "delete": {
-        "summary": "Deja un departamento sin enlace",
-        "operationId": "quitar_enlace_cohortes__cohorte__enlaces__id_departamento__delete",
+        "summary": "Deja una sede sin enlace",
+        "operationId": "quitar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__delete",
         "parameters": [
           {
             "name": "cohorte",
@@ -1470,12 +1811,12 @@
             }
           },
           {
-            "name": "id_departamento",
+            "name": "id_cohorte_sede",
             "in": "path",
             "required": true,
             "schema": {
               "type": "integer",
-              "title": "Id Departamento"
+              "title": "Id Cohorte Sede"
             }
           }
         ],
@@ -1487,13 +1828,13 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Quitar Enlace Cohortes  Cohorte  Enlaces  Id Departamento  Delete"
+                  "title": "Response Quitar Enlace Cohortes  Cohorte  Enlaces  Id Cohorte Sede  Delete"
                 }
               }
             }
           },
           "404": {
-            "description": "no existe (enlace, departamento o cohorte). La cohorte aparece en la base al cargar un corte suyo."
+            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1514,7 +1855,30 @@
   },
   "components": {
     "schemas": {
-      "Body_asignar_enlace_cohortes__cohorte__enlaces__id_departamento__put": {
+      "Body_agregar_sede_cohortes__cohorte__sedes_post": {
+        "properties": {
+          "id_municipio": {
+            "type": "integer",
+            "title": "Id Municipio"
+          },
+          "escuela": {
+            "type": "string",
+            "title": "Escuela"
+          },
+          "direccion": {
+            "type": "string",
+            "title": "Direccion",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_municipio",
+          "escuela"
+        ],
+        "title": "Body_agregar_sede_cohortes__cohorte__sedes_post"
+      },
+      "Body_asignar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__put": {
         "properties": {
           "id_enlace": {
             "type": "integer",
@@ -1525,7 +1889,7 @@
         "required": [
           "id_enlace"
         ],
-        "title": "Body_asignar_enlace_cohortes__cohorte__enlaces__id_departamento__put"
+        "title": "Body_asignar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__put"
       },
       "Body_cargar_cortes__id_corte__carga_post": {
         "properties": {
@@ -1580,6 +1944,24 @@
           "campo"
         ],
         "title": "Body_corregir_cortes__id_corte__correcciones_put"
+      },
+      "Body_crear_cohorte_cohortes_post": {
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "title": "Codigo"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "codigo"
+        ],
+        "title": "Body_crear_cohorte_cohortes_post"
       },
       "Body_crear_corte_cortes_post": {
         "properties": {

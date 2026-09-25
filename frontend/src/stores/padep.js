@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue'
-import { GEO, NAV, SEED } from '@/data/catalog'
+import { NAV, SEED } from '@/data/catalog'
 import { entra, yo } from '@/api/auth'
 import { api } from '@/api/extraccion'
 import { guardaToken, hayToken, cuandoExpire } from '@/api/cliente'
@@ -39,16 +39,11 @@ const state = reactive({
   // pantallas que lo enseñan pintan una raya en vez de un código inventado.
   cohorte: { codigo: '', carrera: '', trimestre: null, id: '' },
 
-  sedes: [
-    { id: 's1', departamento: 'Chimaltenango', municipio: 'Chimaltenango', sede: 'EORM Chimaltenango No.1' },
-    { id: 's2', departamento: 'Sololá', municipio: 'Sololá', sede: 'EORM Sololá Casco Urbano' },
-  ],
-  sedeSel: { dep: 'Chimaltenango', mun: 'Chimaltenango', sede: 'EORM Chimaltenango No.1' },
-
-  enlaces: [
-    { sedeId: 's1', nombre: 'Lucía Morán', cargo: 'Supervisora educativa', contacto: 'lmoran@mineduc.gt' },
-  ],
-  enlaceForm: { sedeId: 's1', nombre: '', cargo: '', contacto: '' },
+  // Sedes y personas de la base (MySQL), no del disco. Viven aquí y no en cada
+  // pantalla porque las pantallas se remontan al navegar y `CohorteContext`
+  // cuenta sobre ellas en las tres.
+  sedes: [],    // SedeDeCohorte[] — todas, cada una con su `enlace` o null
+  enlaces: [],  // Enlace[] — las personas, para el desplegable de asignar
 
   // --- Carga de archivo (simulada) ---
   // Solo queda la de S11: las de las pantallas 5, 7 y 10 se fueron con ellas al
@@ -74,7 +69,9 @@ const state = reactive({
   s13Estatus: 'Todos',
 
   // --- Overlays ---
-  deleteModal: { open: false, sedeId: null, sedeName: '' },
+  // Un solo diálogo para todo lo que pide confirmar (quitar sede, reemplazar
+  // enlace, borrar persona): la acción viaja con él.
+  confirmacion: { open: false },
   drawerDocenteId: null,
 })
 
@@ -109,7 +106,7 @@ const docentes = computed(() => SEED.map(d => getDocente(d.id)))
 
 const inscritos = computed(() => docentes.value.filter(d => d.inscripcionFinal))
 
-const enlacesCount = computed(() => state.enlaces.length)
+const enlacesCount = computed(() => state.sedes.filter(s => s.enlace).length)
 
 /** Checklist de avance del módulo 1. */
 const checklist = computed(() => [
@@ -179,6 +176,8 @@ const actions = {
     state.active = 1
     state.profileOpen = false
     state.cohorte = { codigo: '', carrera: '', trimestre: null, id: '' }
+    state.sedes = []
+    state.enlaces = []
   },
   toggleShowPass() { state.showPass = !state.showPass },
   toggleProfile()  { state.profileOpen = !state.profileOpen },
@@ -217,35 +216,35 @@ const actions = {
     } catch (e) {
       state.cohorte = { codigo: '', carrera: '', trimestre: null, id: '' }
     }
+    actions.cargaConfiguracion().catch(() => {})
+  },
+  /**
+   * Relee sedes y personas de la base para la cohorte elegida. Lanza el error
+   * —404 si la cohorte no está en MySQL, 503 si MySQL no responde— para que la
+   * pantalla lo enseñe, y antes vacía las listas: unas sedes viejas serían
+   * mentira.
+   */
+  async cargaConfiguracion() {
+    const c = state.cohorte.codigo
+    try {
+      [state.sedes, state.enlaces] = c ? await Promise.all([api.sedes(c), api.enlaces()]) : [[], []]
+    } catch (e) {
+      state.sedes = []
+      state.enlaces = []
+      throw e
+    }
   },
 
-  // --- Sedes ---
-  selectDepartamento(dep) {
-    const mun = Object.keys(GEO[dep])[0]
-    state.sedeSel = { dep, mun, sede: GEO[dep][mun][0] }
+  // --- Confirmación ---
+  /** Abre el diálogo; `alConfirmar` solo corre si el usuario acepta. */
+  pideConfirmacion(titulo, mensaje, boton, alConfirmar) {
+    state.confirmacion = { open: true, titulo, mensaje, boton, alConfirmar }
   },
-  selectMunicipio(mun) {
-    state.sedeSel = { ...state.sedeSel, mun, sede: GEO[state.sedeSel.dep][mun][0] }
-  },
-  selectCentro(sede) { state.sedeSel = { ...state.sedeSel, sede } },
-  addSede() {
-    if (state.sedes.some(s => s.sede === state.sedeSel.sede)) return
-    state.sedes.push({ id: `s${Date.now()}`, ...state.sedeSel })
-  },
-  askRemoveSede(id, name) { state.deleteModal = { open: true, sedeId: id, sedeName: name } },
-  cancelRemoveSede()      { state.deleteModal = { open: false, sedeId: null, sedeName: '' } },
-  confirmRemoveSede() {
-    state.sedes = state.sedes.filter(s => s.id !== state.deleteModal.sedeId)
-    state.enlaces = state.enlaces.filter(e => e.sedeId !== state.deleteModal.sedeId)
-    actions.cancelRemoveSede()
-  },
-
-  // --- Enlaces ---
-  asignarEnlace() {
-    const form = state.enlaceForm
-    if (!form.sedeId || !form.nombre.trim()) return
-    state.enlaces = [...state.enlaces.filter(e => e.sedeId !== form.sedeId), { ...form }]
-    state.enlaceForm = { ...form, nombre: '', cargo: '', contacto: '' }
+  cierraConfirmacion() { state.confirmacion = { open: false } },
+  aceptaConfirmacion() {
+    const fn = state.confirmacion.alConfirmar
+    actions.cierraConfirmacion()
+    fn?.()
   },
 
   // --- Cargas ---
@@ -311,4 +310,4 @@ export function usePadep() {
   }
 }
 
-export { NAV, GEO, SEED }
+export { NAV, SEED }
