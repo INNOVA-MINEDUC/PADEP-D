@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { usePadep, NAV } from '@/stores/padep'
 import { etiquetaCarrera } from '@/data/carreras'
 
@@ -8,14 +9,15 @@ const { state, checklist, nextStepId, enlacesCount, goTo } = usePadep()
 // año vive en `anio_pago`, que solo se sabe después de cargar a la base, así
 // que aquí se enseña el trimestre, que sí viene siempre.
 
-const siguiente = () => {
-  if (nextStepId.value === null) return
-  goTo(nextStepId.value)
-}
-const siguienteLabel = () =>
-  nextStepId.value === null
-    ? 'Módulo completo'
-    : `Continuar: ${NAV[0].screens[nextStepId.value - 1].title}`
+// «Continuar» es la pantalla siguiente, no el primer paso pendiente: ese
+// podía ser la pantalla actual y el botón no hacía nada. Lo pendiente lo dice
+// el checklist; en la última pantalla, en su lugar, una línea de estado.
+const pantallas = NAV[0].screens
+const siguiente = computed(() => pantallas.find(s => s.id === state.active + 1))
+const estado = computed(() =>
+  nextStepId.value === null ? 'Módulo completo'
+    : nextStepId.value === 3 ? `Faltan ${state.sedes.length - enlacesCount.value} sedes sin enlace`
+      : `Pendiente: ${checklist.value[nextStepId.value - 1].label.toLowerCase()}`)
 </script>
 
 <template>
@@ -45,9 +47,10 @@ const siguienteLabel = () =>
       </ul>
     </section>
 
-    <button v-if="nextStepId !== null" class="btn btn--primary ctx__next" @click="siguiente">
-      {{ siguienteLabel() }} →
+    <button v-if="siguiente" class="btn btn--primary ctx__next" @click="goTo(siguiente.id)">
+      Continuar: {{ siguiente.title }} →
     </button>
+    <p v-else class="ctx__estado" :class="{ 'is-done': nextStepId === null }">{{ estado }}</p>
   </div>
 </template>
 
@@ -79,6 +82,8 @@ const siguienteLabel = () =>
 /* `.btn` es nowrap con alto fijo, y «Continuar: Asignación de Enlaces DIDEDUC»
    no cabe en esta columna: se salía de la tarjeta por la izquierda. Aquí se le
    deja partir en dos líneas y crecer. */
+.ctx__estado { margin: 0; text-align: center; font-size: 13px; font-weight: 600; color: var(--warning); }
+.ctx__estado.is-done { color: var(--success); }
 .ctx__next {
   width: 100%; height: auto; min-height: 40px; padding: 10px 16px;
   white-space: normal; text-align: center; line-height: 1.35;

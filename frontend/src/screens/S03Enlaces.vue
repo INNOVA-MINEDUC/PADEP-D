@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { usaCohorte } from '@/composables/usaCohorte'
 import ModuleStepper from '@/components/ModuleStepper.vue'
@@ -15,6 +15,14 @@ const enlaceElegido = ref(null)  // id_enlace
 const persona = ref(null)        // formulario de persona abierto; null = cerrado
 
 onMounted(carga)
+
+// Cada relectura trae un array nuevo. Si la sede elegida ya tiene enlace (se
+// acaba de asignar) o ya no está, se pasa a la siguiente sin asignar: así se
+// asignan seguidas sin tocar el desplegable.
+watch(() => state.sedes, (ss) => {
+  const s = ss.find(x => x.id_cohorte_sede === sedeElegida.value)
+  if (!s || s.enlace) sedeElegida.value = ss.find(x => !x.enlace)?.id_cohorte_sede ?? null
+}, { immediate: true })
 
 const contacto = (p) => [p.email, p.telefono].filter(Boolean).join(' · ') || '—'
 

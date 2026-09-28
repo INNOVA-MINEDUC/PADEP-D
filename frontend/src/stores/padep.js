@@ -44,6 +44,9 @@ const state = reactive({
   // cuenta sobre ellas en las tres.
   sedes: [],    // SedeDeCohorte[] — todas, cada una con su `enlace` o null
   enlaces: [],  // Enlace[] — las personas, para el desplegable de asignar
+  // ¿Está la cohorte en MySQL? El corte en disco no basta para registrar sedes.
+  // true/false según responda `/sedes` (404 = no está); null = no se sabe (503).
+  enBase: null,
 
   // --- Carga de archivo (simulada) ---
   // Solo queda la de S11: las de las pantallas 5, 7 y 10 se fueron con ellas al
@@ -110,9 +113,9 @@ const enlacesCount = computed(() => state.sedes.filter(s => s.enlace).length)
 
 /** Checklist de avance del módulo 1. */
 const checklist = computed(() => [
-  // Hecho cuando existe un corte de verdad, no cuando alguien pulsó «Guardar»
-  // en un formulario que no guardaba en ningún sitio.
-  { label: 'Alta de cohorte',   done: !!state.cohorte.codigo },
+  // Hecho cuando la cohorte está en la base, no solo el corte en disco: sin
+  // ella, Sedes contesta 404.
+  { label: 'Alta de cohorte',   done: state.enBase === true },
   { label: 'Sedes registradas', done: state.sedes.length > 0 },
   { label: 'Enlaces asignados', done: state.sedes.length > 0 && enlacesCount.value >= state.sedes.length },
 ])
@@ -178,6 +181,7 @@ const actions = {
     state.cohorte = { codigo: '', carrera: '', trimestre: null, id: '' }
     state.sedes = []
     state.enlaces = []
+    state.enBase = null
   },
   toggleShowPass() { state.showPass = !state.showPass },
   toggleProfile()  { state.profileOpen = !state.profileOpen },
@@ -228,9 +232,11 @@ const actions = {
     const c = state.cohorte.codigo
     try {
       [state.sedes, state.enlaces] = c ? await Promise.all([api.sedes(c), api.enlaces()]) : [[], []]
+      state.enBase = c ? true : null
     } catch (e) {
       state.sedes = []
       state.enlaces = []
+      state.enBase = e.estado === 404 ? false : null
       throw e
     }
   },
