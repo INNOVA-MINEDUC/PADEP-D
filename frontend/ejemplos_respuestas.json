@@ -282,6 +282,56 @@
     },
     "... 123 mas (recortado)"
   ],
+  "/docentes?por_pagina=2": {
+    "total": 3634,
+    "pagina": 1,
+    "por_pagina": 2,
+    "paginas": 1817,
+    "docentes": [
+      {
+        "codigo_padep": "00000000000",
+        "cui": "0000000000000",
+        "nombre": "Apellido Apellido Nombre Nombre",
+        "sexo": "F",
+        "cohorte": "11",
+        "carrera": "36",
+        "carrera_nombre": "Profesorado de Educación Primaria Intercultural",
+        "departamento": "Escuintla",
+        "municipio": "Santa Lucía Cotzumalguapa",
+        "estatus_academico": "activo",
+        "escalafon": "D",
+        "notas": 2,
+        "aprobadas": 2,
+        "cdr": 0,
+        "reprobadas": 0,
+        "promedio": 97.5,
+        "presentes": 7,
+        "sesiones": 7,
+        "asistencia_porcentaje": 100
+      },
+      {
+        "codigo_padep": "00000000000",
+        "cui": "0000000000000",
+        "nombre": "Apellido Apellido Nombre Nombre",
+        "sexo": "F",
+        "cohorte": "11",
+        "carrera": "36",
+        "carrera_nombre": "Profesorado de Educación Primaria Intercultural",
+        "departamento": "Guatemala",
+        "municipio": "Villa Nueva",
+        "estatus_academico": "activo",
+        "escalafon": "A",
+        "notas": 2,
+        "aprobadas": 2,
+        "cdr": 0,
+        "reprobadas": 0,
+        "promedio": 86,
+        "presentes": 7,
+        "sesiones": 7,
+        "asistencia_porcentaje": 100
+      }
+    ]
+  },
   "/cortes/{id}": {
     "id": "11-car35-t6-c1",
     "cohorte": "11",
@@ -507,5 +557,124 @@
       "incidencias": 64,
       "documentos": 14
     }
+  },
+  "/docentes/{codigo}": {
+    "docente": {
+      "codigo_padep": "00000000000",
+      "cui": "0000000000000",
+      "dpi": null,
+      "nombre": "Apellido Apellido Nombre Nombre",
+      "sexo": "F",
+      "fecha_nacimiento": null,
+      "nivel_educativo": null,
+      "municipio": "Santa Lucía Cotzumalguapa",
+      "departamento": "Escuintla"
+    },
+    "inscripciones": [
+      {
+        "cohorte": "11",
+        "cohorte_nombre": "Onceava",
+        "carrera": "36",
+        "carrera_nombre": "Profesorado de Educación Primaria Intercultural",
+        "correlativo": 3802,
+        "estatus_registro": "inscrito",
+        "estatus_academico": "activo",
+        "resultado_admision": "aprobado",
+        "laboral": {
+          "escalafon": "D",
+          "jornada": "Matutina",
+          "partida": "0000-00000000000-00-0000-0000-00-00-00-000-000-000-000-00000",
+          "escuela": null,
+          "codigo_escuela": null
+        },
+        "notas": [
+          {
+            "cohorte": "11",
+            "trimestre": 6,
+            "corte": 1,
+            "bimestre": "NOVENO BIMESTRE",
+            "asignatura_codigo": "2030.36",
+            "asignatura": "Área de Ciencias naturales y tecnología y su aprendizaje",
+            "seccion": "A",
+            "catedratico": "Apellido Apellido Nombre Nombre",
+            "sede": "Escuela Oficial de Varonos \"José Milla y Vidaurre\"",
+            "sede_municipio": "Santa Lucía Cotzumalguapa",
+            "sede_departamento": "Escuintla",
+            "zona": 67,
+            "examen_final": 30,
+            "nota_final": 97,
+            "estado": "APROBADO",
+            "observaciones": "APROBADO",
+            "cuadra": 1,
+            "pagina_origen": 98
+          },
+          {
+            "cohorte": "11",
+            "trimestre": 6,
+            "corte": 1,
+            "bimestre": "NOVENO BIMESTRE",
+            "asignatura_codigo": "3721.36",
+            "asignatura": "Área de productividad y desarrollo y su aprendizaje",
+            "seccion": "A",
+            "catedratico": "Apellido Apellido Nombre Nombre",
+            "sede": "Escuela Oficial de Varonos \"José Milla y Vidaurre\"",
+            "sede_municipio": "Santa Lucía Cotzumalguapa",
+            "sede_departamento": "Escuintla",
+            "zona": 68,
+            "examen_final": 30,
+            "nota_final": 98,
+            "estado": "APROBADO",
+            "observaciones": "APROBADO",
+            "cuadra": 1,
+            "pagina_origen": 99
+          }
+        ],
+        "asistencia": [
+          {
+            "cohorte": "11",
+            "trimestre": 6,
+            "corte": 1,
+            "bimestre": "NOVENO BIMESTRE",
+            "sesiones": [
+              {
+                "numero": 1,
+                "fecha": null,
+                "presente": true
+              },
+              {
+                "numero": 2,
+                "fecha": null,
+                "presente": true
+              },
+              "... 5 mas (recortado)"
+            ],
+            "presentes": 7,
+            "total_declarado": 7,
+            "cuadra": true,
+            "porcentaje": 100.0,
+            "pagina_origen": 40
+          }
+        ]
+      }
+    ],
+    "nomina": [
+      {
+        "cohorte": "11",
+        "trimestre": 6,
+        "corte": 1,
+        "numero_pago": 6,
+        "anio_pago": 2026,
+        "carrera": "36",
+        "correlativo": 3802,
+        "departamento": "Escuintla",
+        "municipio": "Santa Lucía Cotzumalguapa",
+        "escalafon": "D",
+        "jornada": "Matutina",
+        "partida": "0000-00000000000-00-0000-0000-00-00-00-000-000-000-000-00000",
+        "codigo_escuela": "000000000",
+        "fuente": "DIGECADE"
+      }
+    ],
+    "incidencias": []
   }
 }

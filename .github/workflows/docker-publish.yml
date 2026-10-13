@@ -1,4 +1,5 @@
-# Compila las dos imagenes y las publica en GHCR.
+# Compila la imagen del frontend y la publica en GHCR. La del backend ya no:
+# el Express se retiro y la API (FastAPI) se publica desde su propio repo.
 #
 # No hace falta crear ningun secreto: GITHUB_TOKEN basta para empujar al GHCR
 # del propio repo, siempre que el job declare `packages: write`.
@@ -25,8 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - nombre: backend
-            contexto: ./backend
           - nombre: frontend
             contexto: ./frontend
 

@@ -1,14 +1,13 @@
 /**
  * Envoltorio de fetch para la API de PADEP.
  *
- * Todo pasa por el backend Express (`:4000`), que ademas hace de puerta hacia
- * la API de extraccion (FastAPI). Por eso aqui hay que tragar las DOS formas de
- * error: Express dice `{error}` y FastAPI dice `{detail}`. Los dos textos vienen
- * ya en espanol y escritos para quien opera, asi que se propagan tal cual en vez
- * de inventar uno propio.
+ * Todo va a la API de PADEP (FastAPI), que desde octubre de 2026 pone tambien
+ * el login: el backend Express que hacia de puerta se retiro. Los errores
+ * llegan en `{detail}`; se sigue leyendo `{error}` por si algo viejo lo manda.
+ * Los textos vienen ya en espanol y escritos para quien opera, asi que se
+ * propagan tal cual en vez de inventar uno propio.
  *
- * No lleva `credentials: 'include'`: el auth_basic que pudiera haber delante del
- * FastAPI lo pone Express desde el servidor, no el navegador.
+ * Sin `credentials: 'include'`: la sesion es el Bearer, no una cookie.
  */
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
@@ -84,7 +83,7 @@ export async function encola(ruta, cuerpo) {
 /* ---------------------------------------------------------------
    Archivos
    ---------------------------------------------------------------
-   Las descargas NO pueden ser un <a href> pelado: el proxy exige el Bearer y
+   Las descargas NO pueden ser un <a href> pelado: la API exige el Bearer y
    una etiqueta <a> no manda cabeceras. Se bajan con fetch y se abren como blob.
    Una pagina suelta del PDF son ~276 KB, asi que no duele.
    --------------------------------------------------------------- */

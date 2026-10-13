@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { iniciales } from '@/utils/format'
 
-const { state, toggleProfile, goHome, logout, submitTopSearch } = usePadep()
+const { state, toggleProfile, goHome, logout, submitTopSearch, abreCambioPassword } = usePadep()
 
 // Del token, no inventado: nombre, rol y correo vienen de /api/auth/me.
 const usuario = computed(() => ({
@@ -64,7 +64,7 @@ const usuario = computed(() => ({
         </div>
         <div class="menu__group">
           <button class="menu__item" role="menuitem" @click="goHome"><span>⌂</span>Inicio</button>
-          <button class="menu__item" role="menuitem"><span>⚙</span>Configuración</button>
+          <button class="menu__item" role="menuitem" @click="abreCambioPassword"><span>🔑</span>Cambiar contraseña</button>
         </div>
         <div class="menu__group menu__group--top">
           <button class="menu__item menu__item--danger" role="menuitem" @click="logout"><span>⇥</span>Cerrar sesión</button>

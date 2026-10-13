@@ -9,9 +9,4 @@ dist
 .env.*
 
 # Documentacion y material de traspaso: no forma parte del build.
-otro
-CODIGO-COMPLETO.md
-README.md
-
-# Sobra del scaffold, index.html no lo referencia.
-index.js
+*.md

@@ -1,7 +1,8 @@
 <script setup>
-import { usePadep, NAV } from '@/stores/padep'
+import { usePadep } from '@/stores/padep'
 
-const { state, currentModuleIndex, toggleModule, goTo } = usePadep()
+// Solo los módulos y pantallas que la sesión puede ver (ver `navVisible`).
+const { state, navVisible, currentModuleIndex, toggleModule, goTo } = usePadep()
 
 /** Estado visual del badge: completado, actual o pendiente. */
 function badgeState(index) {
@@ -20,7 +21,7 @@ function badgeState(index) {
     </p>
 
     <nav class="sidebar__nav" aria-label="Módulos del sistema">
-      <div v-for="(mod, i) in NAV" :key="mod.id" class="sidebar__module">
+      <div v-for="(mod, i) in navVisible" :key="mod.id" class="sidebar__module">
         <button
           class="sidebar__toggle"
           :aria-expanded="state.openModules[mod.id]"

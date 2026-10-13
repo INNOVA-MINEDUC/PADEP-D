@@ -23,7 +23,7 @@ import { usaCohorte } from '@/composables/usaCohorte'
 import ModuleStepper from '@/components/ModuleStepper.vue'
 import CohorteContext from '@/components/CohorteContext.vue'
 import AvisoError from '@/components/AvisoError.vue'
-import { CARRERAS, etiquetaCarrera } from '@/data/carreras'
+import { etiquetaCarrera } from '@/data/carreras'
 
 const { state, goTo, refrescaCohorte } = usePadep()
 const { lista: cortes, elegido, carga: cargaCortes, elige } = usaCortes()
@@ -50,6 +50,16 @@ const corteVisible = ref(false)
 const { error: errorBase, ocupado: ocupadoBase, creaCohorte } = usaCohorte()
 const cohortesBase = ref(null)
 const enBase = computed(() => cohortesBase.value?.find(c => c.codigo === state.cohorte.codigo))
+
+// El desplegable de carrera sale del catálogo (`GET /carreras`), no del código.
+// Si la base no responde, el formulario sigue: crear un corte es una carpeta
+// en disco y `POST /cortes` no comprueba la carrera contra MySQL, así que se
+// cambia el desplegable por un campo de solo dígitos. `null` = sin respuesta.
+const carreras = ref(null)
+const sinCatalogo = ref(false)
+api.carreras()
+  .then(l => { carreras.value = l })
+  .catch(() => { sinCatalogo.value = true })
 
 const cargaBase = () => api.cohortes()
   .then(l => { cohortesBase.value = l })
@@ -138,12 +148,19 @@ const etiqueta = (c) => {
               </label>
               <!-- Desplegable y no texto libre: la carrera es justo donde se
                    vuelve a colar el error de confundirla con la cohorte. Las
-                   dos son de la Onceava y se separan por este codigo. -->
-              <label class="field">
+                   dos son de la Onceava y se separan por este codigo. Texto
+                   solo si el catalogo no se pudo leer. -->
+              <label v-if="sinCatalogo" class="field">
+                <span class="field__label">Carrera (código)</span>
+                <input v-model.trim="nuevo.carrera" class="input mono" required
+                       inputmode="numeric" pattern="[0-9]+" title="Solo dígitos">
+              </label>
+              <label v-else class="field">
                 <span class="field__label">Carrera</span>
-                <select v-model="nuevo.carrera" class="select" required>
-                  <option v-for="(nombre, codigo) in CARRERAS" :key="codigo" :value="codigo">
-                    {{ codigo }} — {{ nombre }}
+                <select v-model="nuevo.carrera" class="select" required :disabled="!carreras">
+                  <option v-if="!carreras" :value="nuevo.carrera">Consultando…</option>
+                  <option v-for="c in carreras" :key="c.codigo" :value="c.codigo">
+                    {{ c.codigo }} — {{ c.nombre }}
                   </option>
                 </select>
               </label>
@@ -159,11 +176,17 @@ const etiqueta = (c) => {
                 <span class="field__label">Corte</span>
                 <input v-model.number="nuevo.corte" class="input" type="number" min="1" required>
               </label>
-              <button class="btn btn--primary" type="submit" :disabled="ocupado">Crear</button>
+              <button class="btn btn--primary" type="submit" :disabled="ocupado || (!carreras && !sinCatalogo)">Crear</button>
             </form>
 
-            <p v-if="!corteVisible" class="nota nota--suelta">
-              <button type="button" class="btn-link" @click="corteVisible = true">
+            <p v-if="sinCatalogo" class="nota nota--aviso">
+              No se pudo leer el catálogo; escribe el código de la carrera.
+            </p>
+            <p class="nota nota--suelta nota--enlaces">
+              <button type="button" class="btn-link" @click="goTo(4)">
+                ¿No está la carrera? Regístrala →
+              </button>
+              <button v-if="!corteVisible" type="button" class="btn-link" @click="corteVisible = true">
                 Otra entrega en este trimestre →
               </button>
             </p>
@@ -237,6 +260,8 @@ const etiqueta = (c) => {
 
 .nota { margin: 0; font-size: 13px; color: var(--muted); }
 .nota--suelta { margin-top: 2px; }
+.nota--enlaces { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.nota--aviso { color: var(--warning); }
 
 .altas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .altas__item { display: flex; align-items: center; gap: 10px; }

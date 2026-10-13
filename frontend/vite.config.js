@@ -10,10 +10,15 @@ export default defineConfig({
   server: {
     // Con el proxy el navegador ve un solo origen y no hace falta CORS en
     // desarrollo, asi que VITE_API_URL se queda vacio y las llamadas siguen
-    // siendo relativas. Express reenvia por su cuenta lo que sea
-    // /api/extraccion/* a la API de extraccion (FastAPI, :8000).
+    // siendo relativas. /api/* va a la API de PADEP (FastAPI, :8000) sin el
+    // prefijo, igual que hace el nginx de la imagen en el servidor.
     proxy: {
-      '/api': { target: 'http://127.0.0.1:4000', changeOrigin: true },
+      '/api': {
+        // PADEP_API para apuntar a otra instancia (otro puerto) sin tocar esto.
+        target: process.env.PADEP_API || 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        rewrite: (ruta) => ruta.replace(/^\/api/, '') || '/',
+      },
     },
   },
 })

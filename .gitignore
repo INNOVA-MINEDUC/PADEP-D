@@ -18,6 +18,10 @@ pnpm-debug.log*
 # Entorno real del servidor: credenciales de BD y JWT_SECRET. Nunca al repo.
 .env.production
 .env.staging
+# Cualquier otra variante (.env.bak, .env.old...). Solo las plantillas entran.
+.env.*
+!.env.example
+!.env.development
 
 # =========================
 # Build
@@ -53,6 +57,7 @@ desktop.ini
 tmp/
 temp/
 *.tmp
+*.bak
 
 # =========================
 # Coverage
@@ -68,13 +73,6 @@ coverage/
 *.sqlite3
 
 # =========================
-# Uploaded files
-# =========================
-uploads/
-storage/
-public/uploads/
-
-# =========================
 # Excel / generated files
 # =========================
 *.xlsx
@@ -85,8 +83,3 @@ public/uploads/
 # Docker
 # =========================
 docker-compose.override.yml
-
-# =========================
-# Sequelize
-# =========================
-.sequelizerc.local

@@ -6,8 +6,552 @@
     "version": "1.0"
   },
   "paths": {
+    "/salud": {
+      "get": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Responde si el proceso está vivo",
+        "description": "Sin token y sin tocar la base: es la sonda del contenedor.",
+        "operationId": "salud_salud_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Salud Salud Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Entra: devuelve el token y el usuario",
+        "description": "JSON `{email, password}`. El token va después en `Authorization:\nBearer <token>` y dura `PADEP_JWT_HORAS` (8). `usuario.permisos` dice qué\npuede hacer; la pantalla lo usa para no ofrecer lo que se va a rechazar.\n\n10 intentos fallidos por correo cada 15 minutos y luego 429.",
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credenciales"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Login Auth Login Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "El usuario de la sesión, con sus permisos",
+        "description": "Lo llama el frontend al recargar. Lee la base y no el token: un usuario\ndesactivado, o con otro rol, se entera en el acto.",
+        "operationId": "yo_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Yo Auth Me Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          }
+        }
+      }
+    },
+    "/auth/salir": {
+      "post": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Cierra la sesión en todos los dispositivos",
+        "description": "Borrar el token del navegador no basta: seguiría valiendo hasta que\ncaducara. Esto lo anula en el servidor, y con él los de los demás\ndispositivos de esa persona.",
+        "operationId": "salir_auth_salir_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Salir Auth Salir Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          }
+        }
+      }
+    },
+    "/auth/password": {
+      "post": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Cambia la contraseña propia",
+        "description": "Pide la actual. Cierra las otras sesiones y devuelve `{token, usuario}`\nnuevos para que esta siga abierta: el cliente tiene que guardar el token.",
+        "operationId": "cambiar_password_auth_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambioPassword"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Cambiar Password Auth Password Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Los usuarios",
+        "operationId": "listar_usuarios_usuarios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Listar Usuarios Usuarios Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Crea un usuario",
+        "description": "`rol` es uno de los cinco de `GET /roles`. La contraseña: 8 caracteres\no más y distinta del correo. No hay registro público: solo esto.",
+        "operationId": "crear_usuario_usuarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuevoUsuario"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Crear Usuario Usuarios Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id_usuario}": {
+      "put": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Cambia nombre y rol",
+        "description": "El correo no se cambia. Cambiar el rol cierra sus sesiones. 409 si\ndejaría la aplicación sin nadie que administre.",
+        "operationId": "editar_usuario_usuarios__id_usuario__put",
+        "parameters": [
+          {
+            "name": "id_usuario",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Usuario"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EdicionUsuario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Editar Usuario Usuarios  Id Usuario  Put"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id_usuario}/estatus": {
+      "patch": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Activa o desactiva",
+        "description": "Desactivar cierra sus sesiones en el acto. No se borran usuarios: se\ndesactivan, y así su nombre sigue en lo que hizo. 409 si dejaría la\naplicación sin nadie que administre.",
+        "operationId": "estatus_usuario_usuarios__id_usuario__estatus_patch",
+        "parameters": [
+          {
+            "name": "id_usuario",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Usuario"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Estatus"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Estatus Usuario Usuarios  Id Usuario  Estatus Patch"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id_usuario}/password": {
+      "put": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Pone una contraseña nueva (la persona la olvidó)",
+        "description": "Cierra sus sesiones. Para la propia, `POST /auth/password`.",
+        "operationId": "restablecer_password_usuarios__id_usuario__password_put",
+        "parameters": [
+          {
+            "name": "id_usuario",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Usuario"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Password"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Restablecer Password Usuarios  Id Usuario  Password Put"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles": {
+      "get": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Los roles, sus permisos y el catálogo de permisos",
+        "operationId": "listar_roles_roles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Listar Roles Roles Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          }
+        }
+      }
+    },
+    "/roles/{rol}/permisos": {
+      "put": {
+        "tags": [
+          "sesión"
+        ],
+        "summary": "Fija los permisos de un rol",
+        "description": "Reemplaza la lista entera. Vale desde la siguiente petición de cada\nusuario de ese rol, sin cerrar sesiones. 409 si dejaría la aplicación\nsin nadie que administre.",
+        "operationId": "fijar_permisos_roles__rol__permisos_put",
+        "parameters": [
+          {
+            "name": "rol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rol"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Permisos"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Fijar Permisos Roles  Rol  Permisos Put"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/tipos": {
       "get": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Documentos que sabe extraer",
         "operationId": "tipos_tipos_get",
         "responses": {
@@ -22,12 +566,21 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
           }
         }
       }
     },
     "/ajustes": {
       "get": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Qué puede hacer esta instalación",
         "description": "Lo que cambia de una máquina a otra, para que la pantalla no ofrezca lo\nque va a rechazarse.\n\nSin esto, el formulario de extracción sigue a la vista en el servidor y el\nPDF **se sube entero** —140 MB el reporte de resultados— antes de que el\nservidor pueda decir que no: FastAPI recibe el formulario antes de que la\nruta llegue a mirarlo.\n\n`trozo_bytes` lo lee la pantalla para saber de qué tamaño cortar. Lo decide\nel servidor y no el navegador porque el límite lo pone el proxy que haya\ndelante, y eso solo se sabe en la instalación (ver `partes.tamano_trozo`).",
         "operationId": "ajustes_ajustes_get",
@@ -43,12 +596,21 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
           }
         }
       }
     },
     "/cortes": {
       "get": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Los cortes que hay, y qué le falta a cada uno",
         "operationId": "listar_cortes_cortes_get",
         "responses": {
@@ -66,10 +628,19 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
           }
         }
       },
       "post": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Crea la carpeta de un corte",
         "description": "Crear el corte antes de subir nada es el orden natural: un PDF sin corte\nno tiene dónde vivir, y elegirlo después obligaba a mover cientos de MB.\n\n`carrera` es el código con el que la universidad la nombra: 35, 36. No es la\ncohorte —las dos son de la Onceava— y por eso va aparte.",
         "operationId": "crear_corte_cortes_post",
@@ -96,6 +667,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -111,6 +688,9 @@
     },
     "/cortes/{id_corte}": {
       "get": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Estado de un corte",
         "operationId": "ver_corte_cortes__id_corte__get",
         "parameters": [
@@ -137,6 +717,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -152,6 +738,9 @@
     },
     "/cortes/{id_corte}/nomina": {
       "post": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Sube la nómina del pago",
         "operationId": "subir_nomina_cortes__id_corte__nomina_post",
         "parameters": [
@@ -188,6 +777,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -203,6 +798,9 @@
     },
     "/cortes/{id_corte}/extracciones": {
       "post": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Sube un PDF al corte y encola su extracción",
         "operationId": "crear_cortes__id_corte__extracciones_post",
         "parameters": [
@@ -239,6 +837,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -254,6 +858,9 @@
     },
     "/cortes/{id_corte}/extracciones/parte": {
       "post": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Recibe un trozo de un PDF que se está subiendo",
         "description": "Un pedazo del archivo, identificado por la subida a la que pertenece.\n\nDevuelve qué trozos hay ya, que es lo que permite reanudar: el cliente\ncompara y manda solo lo que falta.",
         "operationId": "subir_parte_cortes__id_corte__extracciones_parte_post",
@@ -291,6 +898,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -306,6 +919,9 @@
     },
     "/cortes/{id_corte}/extracciones/parte/{subida}": {
       "get": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Qué trozos de esa subida ya están en el servidor",
         "operationId": "ver_parte_cortes__id_corte__extracciones_parte__subida__get",
         "parameters": [
@@ -341,6 +957,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -356,6 +978,9 @@
     },
     "/cortes/{id_corte}/extracciones/ensamblar": {
       "post": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Junta los trozos, deja el PDF en el corte y encola",
         "description": "Cierra la subida: concatena, valida y encola.\n\n`subidas` y `nombres` van en el mismo orden que las ranuras del formulario,\nporque en los documentos de varias partes lo que distingue un archivo de\notro es la posición y no el nombre (ver `trabajos.Documento`).",
         "operationId": "ensamblar_cortes__id_corte__extracciones_ensamblar_post",
@@ -393,6 +1018,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -408,6 +1039,9 @@
     },
     "/cortes/{id_corte}/entrega": {
       "post": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Cura y audita el corte contra su nómina",
         "description": "Los tres pasos de siempre —curar con la nómina, armar la entrega y\nauditar— sobre lo que ya está en la carpeta del corte.\n\nSe exigen los cinco documentos porque la cobertura contra la nómina no\nsignifica nada con la mitad: diría que faltan 2557 profesores en el\ndocumento que no se subió.",
         "operationId": "entregar_cortes__id_corte__entrega_post",
@@ -435,6 +1069,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -450,6 +1090,9 @@
     },
     "/cortes/{id_corte}/carga": {
       "post": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Carga el corte ya entregado a MySQL",
         "description": "Las cuatro etiquetas son opcionales.\n\nEl papel dice «NOVENO BIMESTRE» y la nómina «6to pago», y esos números no\ncierran contra el trimestre —el bimestre son 2 meses y el trimestre 3—, así\nque no se pueden deducir del corte: o los escribe quien carga, o no se\nsaben. Lo que se deja en blanco entra como NULL y una carga posterior lo\nrellena — antes se rellenaba solo, pero con los valores de la 35.",
         "operationId": "cargar_cortes__id_corte__carga_post",
@@ -486,6 +1129,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -499,6 +1148,9 @@
         }
       },
       "get": {
+        "tags": [
+          "cortes"
+        ],
         "summary": "Qué hay de este corte en la base",
         "description": "Lo que MySQL sabe del corte: si está cargado, con qué etiquetas y cuánto.\n\nAparte de `GET /cortes/{id}`, que se deriva del disco a propósito y no\nconsulta la base. Si la base no responde —lo normal es que Docker no esté\nlevantado— devuelve `disponible: false` y el motivo, no un error: la\npantalla tiene que poder pintarse igual.",
         "operationId": "ver_carga_cortes__id_corte__carga_get",
@@ -526,6 +1178,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -541,6 +1199,9 @@
     },
     "/cortes/{id_corte}/pendientes": {
       "get": {
+        "tags": [
+          "curación"
+        ],
         "summary": "Lo que queda por completar a mano en el corte",
         "operationId": "pendientes_cortes__id_corte__pendientes_get",
         "parameters": [
@@ -567,6 +1228,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -582,6 +1249,9 @@
     },
     "/cortes/{id_corte}/auditoria": {
       "get": {
+        "tags": [
+          "curación"
+        ],
         "summary": "¿Falta algún registro? Lo que encontró la última auditoría",
         "description": "El resultado de `auditar_completitud.py`, que hasta ahora solo existía\ncomo texto en el registro del trabajo.\n\nEs la comprobación que responde a lo que ningún porcentaje delata: la fila\nque nunca se extrajo. Devuelve el resumen por documento y el detalle de cada\naviso, más la fecha, para poder decir si la auditoría es de antes o de\ndespués de la última entrega.",
         "operationId": "auditoria_cortes__id_corte__auditoria_get",
@@ -609,6 +1279,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -624,6 +1300,9 @@
     },
     "/cortes/{id_corte}/correcciones": {
       "put": {
+        "tags": [
+          "curación"
+        ],
         "summary": "Guarda una celda completada a mano",
         "description": "Se guarda en el acto, no al final.\n\n`filas` son varias separadas por coma cuando el campo es de encabezado: se\nescribe una vez y vale para todas las filas de su página. Un campo de cada\nfila llega con una sola — poner el mismo valor en todas inventaría datos.\n\nLo escrito va a `<corte>/correcciones.csv`, que es el artefacto durable:\n`curar.py` regenera la entrega desde `datos/` y se lleva por delante lo\nescrito a mano, así que no puede vivir solo ahí. Valor vacío borra la\ncorrección, que es como se deshace un error.",
         "operationId": "corregir_cortes__id_corte__correcciones_put",
@@ -661,6 +1340,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -676,6 +1361,9 @@
     },
     "/cortes/{id_corte}/altas": {
       "put": {
+        "tags": [
+          "curación"
+        ],
         "summary": "Guarda una casilla de una fila dada de alta a mano",
         "description": "Para quien está en la nómina y no tiene **ninguna** fila en el documento.\n\nLa llave es el carné, no el número de fila: una persona que el OCR nunca\nextrajo no tiene posición a la que apuntar. Solo se admiten los campos que\nel documento pide (`ALTA_CAMPOS`) y `ANULADA`, que deshace el alta sin\nborrar ninguna línea del CSV.\n\nLo escrito entra en la entrega al **rehacerla**, no al volcar: un alta se\ninyecta antes del cruce con la nómina, que es lo que le pone el nombre y el\nmunicipio y lo que la saca de la lista de sin registro.",
         "operationId": "dar_de_alta_cortes__id_corte__altas_put",
@@ -713,6 +1401,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -728,6 +1422,9 @@
     },
     "/cortes/{id_corte}/correcciones/aplicar": {
       "post": {
+        "tags": [
+          "curación"
+        ],
         "summary": "Vuelca lo escrito a mano sobre la entrega",
         "description": "Vuelca las correcciones sobre la entrega ya hecha.\n\nSi hay altas escritas después de la última entrega no basta con volcar: se\nrehace la entrega entera, porque un alta entra antes del cruce y la\ncobertura tiene que recalcularse. Se decide aquí y no en la pantalla para\nque valga también desde `/docs`.",
         "operationId": "aplicar_cortes__id_corte__correcciones_aplicar_post",
@@ -755,6 +1452,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -770,6 +1473,9 @@
     },
     "/cortes/{id_corte}/pagina/{nombre}/{pagina}": {
       "get": {
+        "tags": [
+          "curación"
+        ],
         "summary": "Una sola página de un PDF del corte",
         "description": "Devuelve esa página suelta, como un PDF de una hoja.\n\nEnlazar al PDF entero con '#page=57' no sirve: Chrome aplica el fragmento\nantes de terminar de leer el documento y, cuando acaba de cargar los 40 MB,\n**se vuelve a la página 1**. Comprobado — el indicador marcaba 57 y al rato\nmarcaba 1. Un enlace que acierta a veces es peor que ninguno, porque quien\nlo usa no sabe si está mirando la página que pidió.\n\nExtraerla aquí quita la duda y de paso manda 40 KB en vez de 40 MB.",
         "operationId": "una_pagina_cortes__id_corte__pagina__nombre___pagina__get",
@@ -811,6 +1517,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -826,6 +1538,9 @@
     },
     "/cortes/{id_corte}/archivos/{capa}/{nombre}": {
       "get": {
+        "tags": [
+          "curación"
+        ],
         "summary": "Descarga una salida del corte",
         "operationId": "descargar_del_corte_cortes__id_corte__archivos__capa___nombre__get",
         "parameters": [
@@ -866,6 +1581,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -881,6 +1602,9 @@
     },
     "/extracciones": {
       "get": {
+        "tags": [
+          "trabajos"
+        ],
         "summary": "Los trabajos, del más nuevo al más viejo",
         "description": "Sin `corte`, todos. Con él, solo los de ese corte.\n\n    GET /extracciones                        el histórico entero\n    GET /extracciones?corte=11-car35-t6-c1   solo los de ese corte\n\n**Opcional y no obligatorio** porque las dos vistas hacen falta: la pantalla\nde un corte quiere los suyos, y «qué ha corrido esta máquina» —incluido si\nhay algo extrayéndose ahora mismo, que sea del corte que sea bloquea la\ncola— necesita verlos todos. Un filtro forzado escondería justo el trabajo\nque explica por qué el tuyo no arranca.\n\nSe filtra aquí y no en la cola porque el filtro es de presentación: la cola\nes una sola y global a propósito —un trabajo a la vez, que una extracción\nocupa todos los núcleos—, y partirla por corte daría a entender que hay una\npor cada uno.",
         "operationId": "listar_extracciones_get",
@@ -918,6 +1642,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "el corte no se escribe '11-car35-t6-c1'"
           }
@@ -926,6 +1656,9 @@
     },
     "/extracciones/{id_}": {
       "get": {
+        "tags": [
+          "trabajos"
+        ],
         "summary": "Estado y avance de un trabajo",
         "operationId": "ver_extracciones__id___get",
         "parameters": [
@@ -952,6 +1685,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -965,6 +1704,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "trabajos"
+        ],
         "summary": "Cancela si corre, borra si terminó",
         "operationId": "cancelar_extracciones__id___delete",
         "parameters": [
@@ -991,6 +1733,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -1006,6 +1754,9 @@
     },
     "/extracciones/{id_}/registro": {
       "get": {
+        "tags": [
+          "trabajos"
+        ],
         "summary": "Lo que imprimió el extractor",
         "operationId": "registro_extracciones__id___registro_get",
         "parameters": [
@@ -1030,6 +1781,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -1045,6 +1802,9 @@
     },
     "/extracciones/{id_}/archivos/{nombre}": {
       "get": {
+        "tags": [
+          "trabajos"
+        ],
         "summary": "Descarga una salida del trabajo",
         "description": "Las salidas ya no viven en la carpeta del trabajo sino en la de su\ncorte, así que se buscan por las capas donde puede haberlas dejado.",
         "operationId": "descargar_extracciones__id___archivos__nombre__get",
@@ -1077,6 +1837,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -1092,6 +1858,9 @@
     },
     "/cohortes": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Las cohortes que hay en la base",
         "description": "Con cuántas sedes tiene cada una y cuántas llevan enlace: es el\n«resumen de cohorte» de la pantalla.",
         "operationId": "listar_cohortes_cohortes_get",
@@ -1111,12 +1880,21 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
           }
         }
       },
       "post": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Da de alta una cohorte",
         "description": "`codigo` es el que usa el resto de la API (`11`); `nombre`, el que se\ndice («Onceava»). Antes la cohorte nacía con la primera carga; sigue\nnaciendo ahí si nadie la creó, pero así se puede configurar —sedes y\nenlaces— meses antes de que exista ningún PDF.",
         "operationId": "crear_cohorte_cohortes_post",
@@ -1143,8 +1921,232 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "409": {
-            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+            "description": "la operacion choca con una regla: la cohorte, la carrera o la sede ya existen, la sede o la carrera tienen datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carreras": {
+      "get": {
+        "tags": [
+          "cohortes"
+        ],
+        "summary": "El catálogo de carreras",
+        "description": "Con cuántas inscripciones y documentos tiene cada una: una carrera con\nalgo cargado ya no se puede borrar.",
+        "operationId": "listar_carreras_carreras_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Carreras Carreras Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "cohortes"
+        ],
+        "summary": "Registra una carrera",
+        "description": "**Antes** de cargar su primer corte: `POST /cortes/{id}/carga` ya no\ncrea carreras, las busca por `codigo` y falla si no está.\n\n`codigo` es el de la nómina, el PDF y la carpeta (`35`, `36`); `nivel`,\n`profesorado` o `licenciatura`. `duracion_trimestres` se deja vacío si no\nse sabe.",
+        "operationId": "crear_carrera_carreras_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_crear_carrera_carreras_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Crear Carrera Carreras Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "409": {
+            "description": "la operacion choca con una regla: la cohorte, la carrera o la sede ya existen, la sede o la carrera tienen datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carreras/{codigo}": {
+      "put": {
+        "tags": [
+          "cohortes"
+        ],
+        "summary": "Edita una carrera (no su código)",
+        "description": "Es un PUT: los campos que vayan vacíos se vacían. El código no se\ncambia —es la clave con la que la encuentran el cargador y la carpeta—;\nsi está mal, se borra y se registra otra mientras no tenga nada cargado.",
+        "operationId": "editar_carrera_carreras__codigo__put",
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Codigo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_editar_carrera_carreras__codigo__put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Editar Carrera Carreras  Codigo  Put"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "404": {
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
+          },
+          "409": {
+            "description": "la operacion choca con una regla: la cohorte, la carrera o la sede ya existen, la sede o la carrera tienen datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "cohortes"
+        ],
+        "summary": "Borra una carrera sin nada cargado",
+        "description": "409 si tiene inscripciones o documentos: ya es del papel.",
+        "operationId": "borrar_carrera_carreras__codigo__delete",
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Codigo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Borrar Carrera Carreras  Codigo  Delete"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "404": {
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
+          },
+          "409": {
+            "description": "la operacion choca con una regla: la cohorte, la carrera o la sede ya existen, la sede o la carrera tienen datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1164,6 +2166,9 @@
     },
     "/departamentos": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Los 22 departamentos, para el desplegable",
         "operationId": "listar_departamentos_departamentos_get",
         "responses": {
@@ -1182,6 +2187,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
           }
@@ -1190,6 +2201,9 @@
     },
     "/departamentos/{id_departamento}/municipios": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Los municipios de un departamento que la base conoce",
         "description": "No es el listado oficial: es lo que las nóminas y los PDF cargados han\ntraído. Un municipio que falte se escribe a mano al agregar la sede.",
         "operationId": "listar_municipios_departamentos__id_departamento__municipios_get",
@@ -1220,8 +2234,14 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1241,6 +2261,9 @@
     },
     "/municipios/{id_municipio}/escuelas": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Los centros educativos de un municipio que la base conoce",
         "description": "Mismo aviso. Uno que falte se escribe a mano al agregar la sede.",
         "operationId": "listar_escuelas_municipios__id_municipio__escuelas_get",
@@ -1271,8 +2294,14 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1292,6 +2321,9 @@
     },
     "/cohortes/{cohorte}/sedes": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Las sedes de la cohorte, cada una con su enlace o sin él",
         "description": "La misma lista sirve a las dos pantallas —«Sedes» y «Enlaces»—: la\nsegunda es la primera con una columna más, y `enlace: null` es la fila que\nhay que rellenar. No la filtres, píntala con un botón de asignar.",
         "operationId": "sedes_de_cohorte_cohortes__cohorte__sedes_get",
@@ -1322,8 +2354,14 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1341,6 +2379,9 @@
         }
       },
       "post": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Agrega una sede a la cohorte",
         "description": "La escuela va por **nombre**: si ya existe en ese municipio se reutiliza\n—es la misma clave con la que la busca el cargador— y si no, se crea. Así el\ndesplegable de `GET /municipios/{id}/escuelas` y el campo libre para una\nnueva mandan el mismo formulario. 409 si ya es sede de la cohorte.",
         "operationId": "agregar_sede_cohortes__cohorte__sedes_post",
@@ -1378,11 +2419,17 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "409": {
-            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+            "description": "la operacion choca con una regla: la cohorte, la carrera o la sede ya existen, la sede o la carrera tienen datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1402,6 +2449,9 @@
     },
     "/cohortes/{cohorte}/sedes/{id_cohorte_sede}": {
       "delete": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Quita una sede de la cohorte",
         "description": "Se lleva su asignación de enlace. **409 si la sede tiene secciones**:\nesas vienen de la carga de un corte y de ellas cuelgan inscripciones; una\nsede con datos cargados es del papel y no se borra desde aquí.",
         "operationId": "quitar_sede_cohortes__cohorte__sedes__id_cohorte_sede__delete",
@@ -1438,11 +2488,17 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "409": {
-            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+            "description": "la operacion choca con una regla: la cohorte, la carrera o la sede ya existen, la sede o la carrera tienen datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1462,6 +2518,9 @@
     },
     "/enlaces": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Los enlaces de DIDEDUC, con dónde está cada uno",
         "operationId": "listar_enlaces_enlaces_get",
         "responses": {
@@ -1480,12 +2539,21 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
           }
         }
       },
       "post": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Crea un enlace",
         "description": "La persona se crea sin sede: se asigna después, y en la cohorte.\n\nUn enlace recién creado y todavía sin asignar es un estado legítimo — por\neso la asignación es otra ruta y no un campo de esta.",
         "operationId": "crear_enlace_enlaces_post",
@@ -1512,6 +2580,12 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
           },
@@ -1530,6 +2604,9 @@
     },
     "/enlaces/{id_enlace}": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Un enlace",
         "operationId": "ver_enlace_enlaces__id_enlace__get",
         "parameters": [
@@ -1556,8 +2633,14 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1575,6 +2658,9 @@
         }
       },
       "put": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Edita un enlace",
         "description": "Es un PUT, no un PATCH: los cuatro campos se escriben tal cual llegan, y\nmandar uno en blanco lo borra.",
         "operationId": "editar_enlace_enlaces__id_enlace__put",
@@ -1612,8 +2698,14 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1631,6 +2723,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Borra un enlace sin asignaciones",
         "description": "**409 si está asignado**, diciendo dónde. Borrarlo en cascada se llevaría\nla asignación de una sede sin que nadie lo pidiera; por eso la clave\nforánea es RESTRICT y aquí se explica en vez de dejar salir el 1451.",
         "operationId": "borrar_enlace_enlaces__id_enlace__delete",
@@ -1658,11 +2753,17 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "409": {
-            "description": "la operacion choca con una regla: la cohorte o la sede ya existen, la sede tiene secciones con datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
+            "description": "la operacion choca con una regla: la cohorte, la carrera o la sede ya existen, la sede o la carrera tienen datos cargados, o el enlace que se quiere borrar sigue asignado. El `detail` dice cual."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1682,6 +2783,9 @@
     },
     "/cohortes/{cohorte}/enlaces": {
       "get": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Quién lleva cada sede en esa cohorte",
         "description": "Es exactamente `GET /cohortes/{cohorte}/sedes`: la pantalla de enlaces\nes la de sedes con una columna más. Se conserva la ruta porque es la que\ndice lo que se está mirando.",
         "operationId": "enlaces_de_cohorte_cohortes__cohorte__enlaces_get",
@@ -1712,8 +2816,14 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1733,6 +2843,9 @@
     },
     "/cohortes/{cohorte}/enlaces/{id_cohorte_sede}": {
       "put": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Asigna (o cambia) el enlace de una sede",
         "description": "PUT sobre la sede porque **la asignación es la sede**: reasignar es la\nmisma operación que asignar, y repetirla no crea una segunda fila. Si había\notro, vuelve en `sustituyo` para que la pantalla avise. Una persona puede\nllevar varias sedes.",
         "operationId": "asignar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__put",
@@ -1779,8 +2892,14 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1798,6 +2917,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "cohortes"
+        ],
         "summary": "Deja una sede sin enlace",
         "operationId": "quitar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__delete",
         "parameters": [
@@ -1833,8 +2955,232 @@
               }
             }
           },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
           "404": {
-            "description": "no existe (cohorte, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo."
+            "description": "no existe (cohorte, carrera, sede, enlace, departamento o municipio). La cohorte se crea con `POST /cohortes` o al cargar un corte suyo; la carrera, solo con `POST /carreras`."
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docentes": {
+      "get": {
+        "tags": [
+          "docentes"
+        ],
+        "summary": "Los docentes inscritos, con el resumen de sus notas",
+        "description": "Una fila por **inscripción** (docente en una carrera de una cohorte).\n\n- `cohorte` (`11`) y `carrera` (`35`, `36`) filtran por código.\n- `id_departamento` / `id_municipio`, los de `GET /departamentos`.\n- `q` busca en el nombre —sin distinguir tildes—, en el principio del\n  código PADEP y en el CUI exacto.\n- `estado` (`APROBADO`, `CDR`, `REPROBADO`, `PENDIENTE`) deja a quienes\n  tienen al menos una nota así.\n\n`total` y `paginas` son del filtro entero, no de la página.",
+        "operationId": "listar_docentes_docentes_get",
+        "parameters": [
+          {
+            "name": "cohorte",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cohorte"
+            }
+          },
+          {
+            "name": "carrera",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Carrera"
+            }
+          },
+          {
+            "name": "id_departamento",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Departamento"
+            }
+          },
+          {
+            "name": "id_municipio",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Municipio"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Estado"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Pagina"
+            }
+          },
+          {
+            "name": "por_pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Por Pagina"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Listar Docentes Docentes Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docentes/{codigo}": {
+      "get": {
+        "tags": [
+          "docentes"
+        ],
+        "summary": "La ficha de un docente: notas, asistencia, nómina",
+        "description": "`codigo` es el código PADEP (11 dígitos) o el CUI (13, el que trae el\nreporte de resultados).\n\nCada inscripción lleva su situación laboral, sus notas —con asignatura,\nsección, catedrático, sede y la página del PDF— y su asistencia sesión a\nsesión. `nomina` es lo que dice la nómina de cada pago tal cual llegó\n(escalafón, partida, jornada), e `incidencias`, lo que quedó sin resolver\nal cargar.",
+        "operationId": "ver_docente_docentes__codigo__get",
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Codigo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ver Docente Docentes  Codigo  Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "404": {
+            "description": "no hay ningún docente con ese código"
           },
           "503": {
             "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
@@ -1944,6 +3290,45 @@
           "campo"
         ],
         "title": "Body_corregir_cortes__id_corte__correcciones_put"
+      },
+      "Body_crear_carrera_carreras_post": {
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "title": "Codigo"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "nivel": {
+            "type": "string",
+            "title": "Nivel"
+          },
+          "especialidad": {
+            "type": "string",
+            "title": "Especialidad",
+            "default": ""
+          },
+          "duracion_trimestres": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duracion Trimestres"
+          }
+        },
+        "type": "object",
+        "required": [
+          "codigo",
+          "nombre",
+          "nivel"
+        ],
+        "title": "Body_crear_carrera_carreras_post"
       },
       "Body_crear_cohorte_cohortes_post": {
         "properties": {
@@ -2069,6 +3454,40 @@
         ],
         "title": "Body_dar_de_alta_cortes__id_corte__altas_put"
       },
+      "Body_editar_carrera_carreras__codigo__put": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "nivel": {
+            "type": "string",
+            "title": "Nivel"
+          },
+          "especialidad": {
+            "type": "string",
+            "title": "Especialidad",
+            "default": ""
+          },
+          "duracion_trimestres": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duracion Trimestres"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "nivel"
+        ],
+        "title": "Body_editar_carrera_carreras__codigo__put"
+      },
       "Body_editar_enlace_enlaces__id_enlace__put": {
         "properties": {
           "nombre": {
@@ -2169,6 +3588,73 @@
         ],
         "title": "Body_subir_parte_cortes__id_corte__extracciones_parte_post"
       },
+      "CambioPassword": {
+        "properties": {
+          "actual": {
+            "type": "string",
+            "title": "Actual"
+          },
+          "nueva": {
+            "type": "string",
+            "title": "Nueva"
+          }
+        },
+        "type": "object",
+        "required": [
+          "actual",
+          "nueva"
+        ],
+        "title": "CambioPassword"
+      },
+      "Credenciales": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "Credenciales"
+      },
+      "EdicionUsuario": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "rol": {
+            "type": "string",
+            "title": "Rol"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "rol"
+        ],
+        "title": "EdicionUsuario"
+      },
+      "Estatus": {
+        "properties": {
+          "estatus": {
+            "type": "string",
+            "title": "Estatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estatus"
+        ],
+        "title": "Estatus"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2181,6 +3667,63 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "NuevoUsuario": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "rol": {
+            "type": "string",
+            "title": "Rol"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "email",
+          "password",
+          "rol"
+        ],
+        "title": "NuevoUsuario"
+      },
+      "Password": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "Password"
+      },
+      "Permisos": {
+        "properties": {
+          "permisos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permisos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "permisos"
+        ],
+        "title": "Permisos"
       },
       "ValidationError": {
         "properties": {
@@ -2222,6 +3765,18 @@
         ],
         "title": "ValidationError"
       }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
     }
-  }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
 }

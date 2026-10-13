@@ -1,8 +1,10 @@
-# Despliegue de PADEP en el servidor de produccion.
+# Despliegue del frontend de PADEP en el servidor de produccion.
 #
-# La BD MySQL NO va aqui: ya vive en el propio servidor, fuera de Docker. Por
-# eso el backend la alcanza por `host.docker.internal`, que `host-gateway`
-# resuelve a la IP del host desde dentro de la red del contenedor.
+# Ya no hay backend aqui. El backend Express (login + proxy) se retiro en
+# octubre de 2026: la API de PADEP (FastAPI, repo PycharmProjects/PADEP, su
+# propio docker-compose.yml) pone ahora el login y todo lo demas. Este nginx le
+# habla por la red `proxy` con el alias `padep-api`, asi que ESE compose tiene
+# que estar arriba y en la misma red.
 #
 #   docker compose pull && docker compose up -d      (desde el registry)
 #   docker compose up -d --build                     (compilando en el server)
@@ -13,48 +15,21 @@
 name: padep-app
 
 services:
-  backend:
-    image: ghcr.io/innova-mineduc/padep-d-backend:${TAG:-latest}
-    build:
-      context: ./backend
-    restart: unless-stopped
-    env_file:
-      - ./backend/.env.production
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    # Sin `ports`: el backend no se publica al host. Solo entra el frontend por
-    # la red interna, y las tareas puntuales via `docker compose run`.
-    expose:
-      - "4000"
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    logging:
-      driver: json-file
-      options: { max-size: "10m", max-file: "5" }
-
   frontend:
     image: ghcr.io/innova-mineduc/padep-d-frontend:${TAG:-latest}
     build:
       context: ./frontend
       args:
-        # Vacio: mismo origen, el nginx de la imagen reparte /api al backend.
+        # Vacio: mismo origen, el nginx de la imagen reparte /api a la API.
         VITE_API_URL: ""
     restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
     # Sin puertos publicados: el nginx del servidor tambien es un contenedor y
     # llega por red de Docker. Publicar el 8080 solo abriria una via extra.
     # Para depurar desde el propio host, descomenta:
     #   ports: ["127.0.0.1:8080:80"]
     networks:
-      # Red interna del proyecto: por aqui habla con el backend.
       default: {}
-      # Red compartida con el nginx del servidor.
+      # Red compartida con el nginx del servidor y con la API (padep-api).
       proxy:
         aliases:
           # El nginx apunta a este alias, no al nombre del contenedor: el

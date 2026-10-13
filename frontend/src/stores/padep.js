@@ -1,6 +1,6 @@
 import { reactive, computed } from 'vue'
 import { NAV, SEED } from '@/data/catalog'
-import { entra, yo } from '@/api/auth'
+import { entra, yo, sal, cambiaPassword } from '@/api/auth'
 import { api } from '@/api/extraccion'
 import { guardaToken, hayToken, cuandoExpire } from '@/api/cliente'
 
@@ -18,7 +18,8 @@ const state = reactive({
   // El token vive en el cliente de API (localStorage); aquí solo el usuario.
   loggedIn: false,
   usuario: null,
-  loginUser: 'admin@mineduc.edu.gt',
+  // Vacío: un correo precargado le dice a cualquiera cuál es la cuenta admin.
+  loginUser: '',
   loginPass: '',
   loginError: '',
   loginCargando: false,
@@ -27,10 +28,12 @@ const state = reactive({
   sesionResuelta: false,
   showPass: false,
   profileOpen: false,
+  // Diálogo de «Cambiar contraseña», que se abre desde el menú del perfil.
+  cambioPassword: false,
 
   // --- Navegación ---
   active: 1,
-  openModules: { m1: true, m2: false, m3: false, m4: false, m5: false },
+  openModules: { m1: true, m2: false, m3: false, m4: false, m5: false, m6: false },
 
   // --- Módulo 1: cohorte ---
   // Ya no es un borrador que se teclea: sale del corte elegido en la API de
@@ -47,17 +50,25 @@ const state = reactive({
   // ¿Está la cohorte en MySQL? El corte en disco no basta para registrar sedes.
   // true/false según responda `/sedes` (404 = no está); null = no se sabe (503).
   enBase: null,
+  // Código con el que el catálogo de carreras abre el formulario de alta ya
+  // escrito: lo deja Extracción cuando una carga falla por carrera sin
+  // registrar. La pantalla lo consume (y lo vacía) al montarse.
+  carreraPorRegistrar: '',
 
   // --- Carga de archivo (simulada) ---
   // Solo queda la de S11: las de las pantallas 5, 7 y 10 se fueron con ellas al
   // centralizar la extracción en el módulo 5.
   s11Uploaded: false,
 
-  // --- Listados y filtros ---
-  s8Tab: 'preliminar',
+  // --- Listados y filtros (módulo 2, contra `GET /docentes`) ---
+  // Viven aquí y no en la pantalla para sobrevivir a la navegación, y porque el
+  // buscador de la cabecera escribe en `s9Query`. '' / null = sin filtro.
+  s8Carrera: '',
   s9Query: '',
-  s9Sede: 'Todas',
-  s9Estatus: 'Todos',
+  s9Dep: null,
+  s9Mun: null,
+  s9Carrera: '',
+  s9Estado: '',
 
   // --- Seguimiento ---
   notasOverrides: {},
@@ -75,6 +86,7 @@ const state = reactive({
   // Un solo diálogo para todo lo que pide confirmar (quitar sede, reemplazar
   // enlace, borrar persona): la acción viaja con él.
   confirmacion: { open: false },
+  // Código PADEP del docente abierto en la consulta rápida (S09), o null.
   drawerDocenteId: null,
 })
 
@@ -82,11 +94,31 @@ const state = reactive({
    Getters
    ========================================================= */
 
+/**
+ * ¿Tiene la sesión ese permiso? `p` es un código o una lista (basta uno); sin
+ * `p`, sí. Es para no OFRECER lo que se va a rechazar: quien decide es la API,
+ * que pide el suyo en cada ruta.
+ */
+function puede(p) {
+  if (!p) return true
+  const tiene = state.usuario?.permisos ?? []
+  return (Array.isArray(p) ? p : [p]).some(x => tiene.includes(x))
+}
+
+/** El menú con solo lo que la sesión puede ver; un módulo vacío no sale. */
+const navVisible = computed(() => NAV
+  .map(m => ({ ...m, screens: m.screens.filter(sc => puede(sc.permiso)) }))
+  .filter(m => m.screens.length))
+
+const pantallaPermitida = id => navVisible.value.some(m => m.screens.some(sc => sc.id === id))
+const primeraPantalla = () => navVisible.value[0]?.screens[0]?.id ?? null
+
 const currentModule = computed(
-  () => NAV.find(m => m.screens.some(s => s.id === state.active)) ?? NAV[0]
+  () => navVisible.value.find(m => m.screens.some(s => s.id === state.active))
+    ?? navVisible.value[0] ?? NAV[0]
 )
 
-const currentModuleIndex = computed(() => NAV.findIndex(m => m.id === currentModule.value.id))
+const currentModuleIndex = computed(() => navVisible.value.findIndex(m => m.id === currentModule.value.id))
 
 const crumbScreen = computed(
   () => currentModule.value.screens.find(s => s.id === state.active)?.title ?? ''
@@ -143,6 +175,7 @@ const actions = {
       state.usuario = await entra(state.loginUser.trim(), state.loginPass)
       state.loggedIn = true
       state.loginPass = ''
+      actions.aPantallaPermitida()
       // Sin await: el proxy de extracción exige el token, así que esto no podía
       // salir antes del login, pero tampoco tiene por qué retrasar la entrada.
       actions.refrescaCohorte()
@@ -164,6 +197,7 @@ const actions = {
       try {
         state.usuario = await yo()
         state.loggedIn = true
+        actions.aPantallaPermitida()
         actions.refrescaCohorte()
       } catch (e) {
         guardaToken('')
@@ -171,31 +205,63 @@ const actions = {
     }
     state.sesionResuelta = true
   },
-  logout() {
+  /**
+   * Cerrar sesión de verdad: la API anula el token (y los de los demás
+   * dispositivos). Si falla —red caída, token ya muerto— se sale igual: lo
+   * que no puede pasar es que el botón no saque a nadie.
+   */
+  async logout() {
+    try { await sal() } catch (e) { /* se sale igual */ }
+    actions.limpiaSesion()
+  },
+  /** Solo el lado del navegador. Es lo que hace un 401: no hay a quién avisar. */
+  limpiaSesion() {
     guardaToken('')
     state.loggedIn = false
     state.usuario = null
     state.loginPass = ''
     state.active = 1
     state.profileOpen = false
+    state.cambioPassword = false
     state.cohorte = { codigo: '', carrera: '', trimestre: null, id: '' }
     state.sedes = []
     state.enlaces = []
     state.enBase = null
+  },
+  /**
+   * Cambia la contraseña propia. La API devuelve un token nuevo (el cliente ya
+   * lo guardó) y cierra las demás sesiones. Lanza el error para el diálogo.
+   */
+  async cambiaMiPassword(actual, nueva) {
+    state.usuario = await cambiaPassword(actual, nueva)
+  },
+  abreCambioPassword()  { state.profileOpen = false; state.cambioPassword = true },
+  cierraCambioPassword() { state.cambioPassword = false },
+  /** Si la pantalla actual no está permitida, a la primera que sí. */
+  aPantallaPermitida() {
+    if (!pantallaPermitida(state.active)) state.active = primeraPantalla()
   },
   toggleShowPass() { state.showPass = !state.showPass },
   toggleProfile()  { state.profileOpen = !state.profileOpen },
   closeProfile()   { state.profileOpen = false },
 
   // --- Navegación ---
+  // Una pantalla que la sesión no puede ver no se abre ni por un enlace interno
+  // (p. ej. «registrar carrera» desde Extracción): se queda donde está.
   goTo(id) {
+    if (!pantallaPermitida(id)) return
     state.active = id
     state.drawerDocenteId = null
     state.profileOpen = false
   },
-  goHome() { actions.goTo(1) },
+  goHome() { actions.goTo(primeraPantalla()) },
+  /** Al catálogo de carreras con el alta abierta y `codigo` ya escrito. */
+  registraCarrera(codigo = '') {
+    state.carreraPorRegistrar = String(codigo)
+    actions.goTo(4)
+  },
   toggleModule(id) { state.openModules[id] = !state.openModules[id] },
-  submitTopSearch() { state.active = 9 },
+  submitTopSearch() { actions.goTo(9) },
 
   // --- Cohorte ---
   /**
@@ -260,15 +326,10 @@ const actions = {
   getDocente,
   openFicha(id) {
     state.fichaId = id
-    state.active = 12
+    actions.goTo(12)
   },
-  openDrawer(id)  { state.drawerDocenteId = id },
-  closeDrawer()   { state.drawerDocenteId = null },
-  drawerToFicha() {
-    const id = state.drawerDocenteId
-    state.drawerDocenteId = null
-    actions.openFicha(id)
-  },
+  openDrawer(codigo) { state.drawerDocenteId = codigo },
+  closeDrawer()      { state.drawerDocenteId = null },
   setEstatus(id, estatus) { state.statusOverrides[id] = estatus },
   setNota(id, campo, valor) {
     const actual = state.notasOverrides[id] ?? {}
@@ -281,8 +342,10 @@ const actions = {
   },
   clearFiltrosDocentes() {
     state.s9Query = ''
-    state.s9Sede = 'Todas'
-    state.s9Estatus = 'Todos'
+    state.s9Dep = null
+    state.s9Mun = null
+    state.s9Carrera = ''
+    state.s9Estado = ''
   },
 
   // --- Reportes ---
@@ -297,7 +360,7 @@ const actions = {
 
 // Un 401 en cualquier petición saca al usuario: el token caducó a media sesión
 // y seguir pintando pantallas que no pueden traer datos solo confunde.
-cuandoExpire(() => actions.logout())
+cuandoExpire(() => actions.limpiaSesion())
 
 export function usePadep() {
   return {
@@ -305,6 +368,8 @@ export function usePadep() {
     // getters
     currentModule,
     currentModuleIndex,
+    navVisible,
+    puede,
     crumbScreen,
     docentes,
     inscritos,

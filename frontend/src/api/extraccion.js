@@ -1,17 +1,15 @@
 import { pide, pideTexto, encola, abreEnPestana, descarga } from './cliente'
 
 /**
- * API de extraccion (FastAPI) vista a traves del proxy de Express.
+ * API de PADEP (FastAPI, PycharmProjects/PADEP/api). Ya no hay Express en
+ * medio: el login tambien es suyo.
  *
  * Las rutas son las mismas del contrato —`frontend/openapi.json`, regenerado
- * del codigo de la API—, solo con el prefijo del proxy delante. Si algun dia el
- * frontend vuelve a servirse desde el mismo origen que FastAPI, basta con vaciar
- * RAIZ.
- *
- * `frontend/otro/` guarda el contrato de ANTES del cambio de eje del corte (el
- * que aun hablaba de semestres): esta ahi como historia, no como referencia.
+ * del codigo de la API—, con `/api` delante. Ese prefijo lo quita el proxy (el
+ * de Vite en desarrollo, el nginx de la imagen en el servidor): la API sirve
+ * `/cortes`, el navegador pide `/api/cortes`.
  */
-const RAIZ = '/api/extraccion'
+const RAIZ = '/api'
 
 const forma = (campos) => {
   const f = new FormData()
@@ -74,6 +72,15 @@ export const api = {
   cohortes: () => pide(`${RAIZ}/cohortes`),
   creaCohorte: (campos) => pide(`${RAIZ}/cohortes`, { method: 'POST', body: forma(campos) }),
 
+  // Catalogo de carreras (MySQL). Se registra ANTES del primer corte: la carga
+  // a la base ya no las crea y falla si no esta. El codigo no se edita (es la
+  // clave del cargador y de la carpeta `car35`). 409 por duplicado o con datos.
+  carreras: () => pide(`${RAIZ}/carreras`),
+  creaCarrera: (campos) => pide(`${RAIZ}/carreras`, { method: 'POST', body: forma(campos) }),
+  editaCarrera: (codigo, campos) =>
+    pide(`${RAIZ}/carreras/${encodeURIComponent(codigo)}`, { method: 'PUT', body: forma(campos) }),
+  borraCarrera: (codigo) => pide(`${RAIZ}/carreras/${encodeURIComponent(codigo)}`, { method: 'DELETE' }),
+
   departamentos: () => pide(`${RAIZ}/departamentos`),
   municipios: (idDep) => pide(`${RAIZ}/departamentos/${idDep}/municipios`),
   escuelas: (idMun) => pide(`${RAIZ}/municipios/${idMun}/escuelas`),
@@ -91,4 +98,19 @@ export const api = {
   asigna: (c, idCs, idEnlace) =>
     pide(`${RAIZ}/cohortes/${c}/enlaces/${idCs}`, { method: 'PUT', body: forma({ id_enlace: idEnlace }) }),
   desasigna: (c, idCs) => pide(`${RAIZ}/cohortes/${c}/enlaces/${idCs}`, { method: 'DELETE' }),
+
+  // Consulta de docentes (MySQL, solo lectura: no hay PUT ni DELETE a
+  // proposito, la base se rehace en cada carga). Una fila por INSCRIPCION, no
+  // por persona. 422 si un filtro no vale, 503 si MySQL no responde.
+  docentes: (filtros = {}) => pide(`${RAIZ}/docentes${consulta(filtros)}`),
+  // `codigo`: el codigo PADEP (11 digitos) o el CUI (13). 404 si no existe.
+  docente: (codigo) => pide(`${RAIZ}/docentes/${encodeURIComponent(codigo)}`),
+}
+
+/** `{a: 1, b: '', c: null}` -> `?a=1`. Un filtro vacio no se manda. */
+function consulta(filtros) {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(filtros)) if (v !== '' && v != null) q.append(k, v)
+  const s = q.toString()
+  return s ? `?${s}` : ''
 }

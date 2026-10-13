@@ -8,9 +8,9 @@
  * mano desde `frontend/openapi.json` y `frontend/ejemplos_respuestas.json`
  * cuando la API los regenere.
  *
- * Dos modulos: la extraccion de cortes y la configuracion de cohorte (sedes y
- * enlaces de DIDEDUC). El segundo es el unico que escribe en MySQL, y por eso es
- * el unico que puede dar 503.
+ * Tres modulos: la extraccion de cortes, la configuracion de cohorte (sedes y
+ * enlaces de DIDEDUC) y la consulta de docentes. Los dos ultimos leen MySQL, y
+ * por eso son los que pueden dar 503; solo el segundo escribe.
  *
  * Nada de esto se ejecuta. El archivo se importa solo por sus tipos.
  *
@@ -355,6 +355,173 @@
  * @typedef {object} ResultadoBorrarEnlace
  * @property {number} borrado    el id que se borro
  * @property {string} nombre
+ */
+
+/* ---------------------------------------------------------------
+   Catalogo de carreras (CARRERAS_FRONTEND.md)
+
+   La carrera se registra a mano ANTES de su primer corte: `POST /cortes/{id}/
+   carga` ya no la crea, la busca por `codigo` y el trabajo termina `fallido`
+   si no esta. No es de ninguna cohorte: la 35 y la 36 son las dos de la 11.
+   503 si MySQL no responde: nunca una lista vacia.
+   --------------------------------------------------------------- */
+
+/**
+ * `GET /carreras` y la respuesta de `POST` y `PUT /carreras/{codigo}`.
+ *
+ * `especialidad` y `duracion_trimestres` llegan `null` cuando no se saben: es
+ * un estado normal, se pinta «—», no 0. Con `inscripciones` o `documentos` > 0
+ * ya no se puede borrar (409).
+ *
+ * @typedef {object} Carrera
+ * @property {number} id_carrera
+ * @property {string} codigo                  '35' — solo digitos; no se edita
+ * @property {string} nombre                  como en la columna `Carrera` de la nomina
+ * @property {'profesorado'|'licenciatura'} nivel
+ * @property {?string} especialidad
+ * @property {?number} duracion_trimestres    1-12
+ * @property {number} inscripciones
+ * @property {number} documentos
+ */
+
+/**
+ * Cuerpo (formulario) de `POST /carreras`; el de `PUT /carreras/{codigo}` es
+ * el mismo sin `codigo`.
+ *
+ * El PUT no es un PATCH: van los cuatro campos siempre, y una `especialidad`
+ * vacia se borra. `duracion_trimestres` vacia NO se manda (ni como 0 ni como
+ * cadena vacia). 409 si el codigo o el nombre ya existen —tambien con otra
+ * tilde o mayuscula—; 422 si el codigo no son digitos, el nombre va vacio, el
+ * nivel no es uno de los dos o la duracion sale de 1-12.
+ *
+ * @typedef {object} CarreraEscrita
+ * @property {string} [codigo]                solo en el POST
+ * @property {string} nombre
+ * @property {'profesorado'|'licenciatura'} nivel
+ * @property {string} [especialidad]
+ * @property {number} [duracion_trimestres]
+ */
+
+/**
+ * Respuesta de `DELETE /carreras/{codigo}`.
+ *
+ * @typedef {object} ResultadoBorrarCarrera
+ * @property {string} borrada    el codigo
+ * @property {string} nombre
+ */
+
+/* ---------------------------------------------------------------
+   Consulta de docentes (CONSULTA_DOCENTES.md). Solo lectura.
+   El contrato las declara `additionalProperties: true`: la forma sale de
+   `ejemplos_respuestas.json`, no del esquema.
+   --------------------------------------------------------------- */
+
+/**
+ * Una fila de `GET /docentes`: una INSCRIPCION (docente en una carrera de una
+ * cohorte). Quien este en dos carreras sale dos veces.
+ *
+ * @typedef {object} DocenteFila
+ * @property {string} codigo_padep       11 digitos
+ * @property {string} cui                13 digitos
+ * @property {string} nombre
+ * @property {?string} sexo              'F' | 'M'
+ * @property {string} cohorte            '11'
+ * @property {string} carrera            '35' | '36'
+ * @property {string} carrera_nombre
+ * @property {?string} departamento
+ * @property {?string} municipio
+ * @property {string} estatus_academico  'activo', ...
+ * @property {?string} escalafon
+ * @property {number} notas              cuantas asignaturas con nota
+ * @property {number} aprobadas
+ * @property {number} cdr
+ * @property {number} reprobadas
+ * @property {?number} promedio          null sin notas cargadas
+ * @property {number} presentes
+ * @property {number} sesiones
+ * @property {?number} asistencia_porcentaje  null sin asistencia cargada
+ */
+
+/**
+ * `GET /docentes`. `total` y `paginas` son del filtro entero, no de la pagina.
+ * Filtros: cohorte, carrera, id_departamento, id_municipio, q (nombre, principio
+ * del codigo PADEP o CUI exacto), estado (APROBADO | CDR | REPROBADO |
+ * PENDIENTE), pagina (desde 1), por_pagina (1..200, 50 por defecto).
+ *
+ * @typedef {object} ListaDocentes
+ * @property {number} total
+ * @property {number} pagina
+ * @property {number} por_pagina
+ * @property {number} paginas
+ * @property {DocenteFila[]} docentes
+ */
+
+/**
+ * Nota de una asignatura. Pintar `estado`, no `observaciones`: solo `estado`
+ * distingue CDR de REPROBADO.
+ *
+ * @typedef {object} NotaDocente
+ * @property {string} cohorte
+ * @property {number} trimestre
+ * @property {number} corte
+ * @property {string} bimestre
+ * @property {string} asignatura_codigo
+ * @property {string} asignatura
+ * @property {?string} seccion
+ * @property {?string} catedratico
+ * @property {?string} sede
+ * @property {?string} sede_municipio
+ * @property {?string} sede_departamento
+ * @property {?number} zona
+ * @property {?number} examen_final
+ * @property {?number} nota_final
+ * @property {string} estado             'APROBADO' | 'CDR' | 'REPROBADO' | 'PENDIENTE'
+ * @property {?string} observaciones
+ * @property {?(number|boolean)} cuadra  1/true cuadra, 0/false no, null falta dato
+ * @property {?number} pagina_origen     pagina del PDF de donde salio
+ */
+
+/**
+ * @typedef {object} AsistenciaDocente
+ * @property {string} cohorte
+ * @property {number} trimestre
+ * @property {number} corte
+ * @property {string} bimestre
+ * @property {{numero: number, fecha: ?string, presente: boolean}[]} sesiones
+ * @property {number} presentes
+ * @property {?number} total_declarado
+ * @property {?(number|boolean)} cuadra
+ * @property {?number} porcentaje
+ * @property {?number} pagina_origen
+ */
+
+/**
+ * @typedef {object} InscripcionDocente
+ * @property {string} cohorte
+ * @property {string} cohorte_nombre
+ * @property {string} carrera
+ * @property {string} carrera_nombre
+ * @property {number} correlativo
+ * @property {string} estatus_registro     'inscrito', ...
+ * @property {string} estatus_academico    'activo', ...
+ * @property {?string} resultado_admision  'aprobado', ...
+ * @property {?{escalafon: ?string, jornada: ?string, partida: ?string,
+ *              escuela: ?string, codigo_escuela: ?string}} laboral  la mas reciente
+ * @property {NotaDocente[]} notas
+ * @property {AsistenciaDocente[]} asistencia
+ */
+
+/**
+ * `GET /docentes/{codigo}`. `nomina` va TAL CUAL llego en cada pago;
+ * `incidencias`, lo que quedo sin resolver al cargar (FALTA, REVISAR, ...).
+ *
+ * @typedef {object} FichaDocente
+ * @property {{codigo_padep: string, cui: string, dpi: ?string, nombre: string,
+ *             sexo: ?string, fecha_nacimiento: ?string, nivel_educativo: ?string,
+ *             municipio: ?string, departamento: ?string}} docente
+ * @property {InscripcionDocente[]} inscripciones
+ * @property {object[]} nomina
+ * @property {object[]} incidencias
  */
 
 export {}

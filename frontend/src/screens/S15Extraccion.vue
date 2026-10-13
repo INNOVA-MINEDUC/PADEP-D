@@ -13,7 +13,7 @@ import AvisoError from '@/components/AvisoError.vue'
 import { pillClass } from '@/utils/format'
 import { etiquetaCarrera } from '@/data/carreras'
 
-const { goTo, refrescaCohorte } = usePadep()
+const { goTo, refrescaCohorte, registraCarrera } = usePadep()
 const { puedeExtraer, trozo, tipos, carga: cargaAjustes } = usaAjustes()
 const {
   lista: cortes, elegido, corte, puedeEntregar, puedeCargar, extraidos,
@@ -486,7 +486,17 @@ onMounted(async () => {
                   </div>
                   <div v-if="t.error">
                     <dt>Error</dt>
-                    <dd class="mono es-mal">{{ t.error }}</dd>
+                    <dd>
+                      <span class="mono es-mal">{{ t.error }}</span>
+                      <!-- La carga ya no crea carreras: falla si no esta en el
+                           catalogo, y el `error` lo dice nombrando la ruta. -->
+                      <button
+                        v-if="t.error.includes('POST /carreras')"
+                        type="button" class="btn-link detalle__accion"
+                        @click="registraCarrera(t.carrera)">
+                        Registrar la carrera →
+                      </button>
+                    </dd>
                   </div>
                 </dl>
 
@@ -571,6 +581,7 @@ onMounted(async () => {
 .detalle__datos > div { display: flex; gap: 10px; align-items: baseline; }
 .detalle__datos dt { flex: 0 0 8rem; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-2); }
 .detalle__datos dd { margin: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.detalle__accion { display: block; margin-top: 6px; font-size: 12px; }
 .detalle__titulo { margin: 16px 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-2); }
 
 .registro {

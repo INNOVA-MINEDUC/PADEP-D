@@ -5,18 +5,31 @@ export function pillClass(tone) {
   return ['pill', tone ? `pill--${tone}` : ''].filter(Boolean).join(' ')
 }
 
-/** Tono asociado al estatus de un docente. */
-export function estatusTone(estatus) {
-  if (estatus === 'Retirado') return 'danger'
-  if (estatus === 'Graduado') return 'success'
+/**
+ * Tono asociado al estatus de un docente. Sin distinguir mayúsculas: la API
+ * dice `activo` y la maqueta de S12 todavía dice `Activo`.
+ */
+export function estatusTone(estatus = '') {
+  const e = String(estatus).toLowerCase()
+  if (e === 'retirado') return 'danger'
+  if (e === 'graduado') return 'success'
   return 'teal'
 }
 
-/** Tono asociado al resultado de admisión. */
-export function resultadoTone(resultado) {
-  if (resultado === 'Aprobado') return 'success'
-  if (resultado === 'No aprobado') return 'danger'
+/**
+ * Tono del `estado` de una nota. CDR (derecho a recuperación) no es un
+ * suspenso: va en ámbar, no en rojo.
+ */
+export function estadoNotaTone(estado) {
+  if (estado === 'APROBADO') return 'success'
+  if (estado === 'CDR') return 'clay'
+  if (estado === 'REPROBADO') return 'danger'
   return ''
+}
+
+/** `activo` -> `Activo`. La API manda los estatus en minúscula. */
+export function capital(s) {
+  return s ? s[0].toUpperCase() + s.slice(1) : ''
 }
 
 /** Iniciales para el avatar (máx. 2 letras). */
