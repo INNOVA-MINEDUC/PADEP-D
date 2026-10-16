@@ -1,6 +1,7 @@
 <script setup>
+import Icono from '@/components/Icono.vue'
 defineProps({
-  title: { type: String, default: 'Arrastre y suelte su archivo aquí' },
+  title: { type: String, default: 'Arrastra y suelta tu archivo aquí' },
   hint: { type: String, default: 'Formatos aceptados: PDF o Excel · Tamaño hasta 100 MB' },
   /** 'blue' = estilo destacado; 'plain' = variante discreta. */
   variant: { type: String, default: 'blue' },
@@ -10,7 +11,7 @@ const emit = defineEmits(['select'])
 
 <template>
   <div class="dropzone" :class="`dropzone--${variant}`" @dragover.prevent @drop.prevent="emit('select')">
-    <div v-if="variant === 'blue'" class="dropzone__icon" aria-hidden="true">⬆</div>
+    <div v-if="variant === 'blue'" class="dropzone__icon"><Icono nombre="subir" :tam="18" /></div>
     <p class="dropzone__title">{{ title }}</p>
     <div v-if="variant === 'blue'" class="dropzone__or" aria-hidden="true"><span /> o <span /></div>
     <p v-else class="dropzone__hint">{{ hint }}</p>
@@ -33,9 +34,9 @@ const emit = defineEmits(['select'])
   display: flex; align-items: center; justify-content: center; color: var(--blue); font-size: 22px;
 }
 .dropzone__title { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
-.dropzone--plain .dropzone__title { font-size: 13.5px; }
+.dropzone--plain .dropzone__title { font-size: 14px; }
 .dropzone__or { display: flex; align-items: center; gap: 10px; width: 180px; color: #9CA3AF; font-size: 12px; }
 .dropzone__or span { flex: 1; height: 1px; background: var(--border-3); }
-.dropzone__hint { margin: 0; font-size: 11px; color: var(--muted-2); }
+.dropzone__hint { margin: 0; font-size: 12px; color: var(--muted-2); }
 .dropzone--plain .dropzone__hint { font-size: 12px; color: var(--muted); }
 </style>

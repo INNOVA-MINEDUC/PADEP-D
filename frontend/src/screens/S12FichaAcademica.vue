@@ -158,7 +158,7 @@ const timeline = computed(() => {
   margin: 0; padding: 20px; display: grid; grid-template-columns: 1fr 1fr;
   row-gap: 16px; column-gap: 20px; font-size: 13px;
 }
-.expediente dt { font-size: 11px; color: var(--muted-2); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; margin-bottom: 4px; }
+.expediente dt { font-size: 12px; color: var(--muted-2); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; margin-bottom: 4px; }
 .expediente dd { margin: 0; color: var(--ink); }
 
 .estatus-field { max-width: 260px; }
@@ -171,7 +171,7 @@ const timeline = computed(() => {
 
 .historial { padding: 20px; }
 .historial__title {
-  margin: 0 0 16px; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  margin: 0 0 16px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: var(--muted-2);
 }
 .historial__list { list-style: none; margin: 0; padding: 0 0 0 6px; position: relative; }

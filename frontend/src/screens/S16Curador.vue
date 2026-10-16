@@ -427,14 +427,14 @@ onMounted(async () => {
 .fila > .btn { margin-bottom: 18px; }
 
 .resumen { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; justify-content: space-between; }
-.conmutador { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.conmutador { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); cursor: pointer; }
 
 .tarea { margin-bottom: 12px; }
 .tarea--hecha { border-color: #BFDFCC; background: #FCFEFD; }
 .tarea__cabeza { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
 .tarea__quien { font-size: 14px; font-weight: 700; color: var(--ink); }
-.tarea__donde { font-size: 11.5px; color: var(--muted); }
-.tarea__pdf { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; font-size: 12.5px; margin: 0 0 10px; }
+.tarea__donde { font-size: 12px; color: var(--muted); }
+.tarea__pdf { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; font-size: 13px; margin: 0 0 10px; }
 .tarea__vacio { color: var(--muted-2); font-style: italic; }
 .tarea__mas { color: var(--muted); font-weight: 600; }
 .tarea__detalle {
@@ -443,23 +443,23 @@ onMounted(async () => {
 }
 .tarea__detalle > div { display: flex; gap: 10px; align-items: baseline; }
 .tarea__detalle dt {
-  flex: 0 0 6rem; font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+  flex: 0 0 6rem; font-size: 12px; font-weight: 700; letter-spacing: .04em;
   text-transform: uppercase; color: var(--muted-2);
 }
 .tarea__detalle dd { margin: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 
 .confirmar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
-.confirmar__nota { font-size: 12.5px; color: var(--muted); }
+.confirmar__nota { font-size: 13px; color: var(--muted); }
 .confirmar__hecho { font-size: 13px; font-weight: 600; color: var(--success); }
 
 .rejilla { margin-bottom: 14px; }
 .rejilla .table th { white-space: nowrap; vertical-align: bottom; }
-.rejilla__pista { display: block; margin-top: 4px; font-size: 10px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted-2); }
+.rejilla__pista { display: block; margin-top: 4px; font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted-2); }
 .rejilla__celda { vertical-align: top; }
 .input--corto { width: 5.5rem; padding: 6px 8px; text-align: center; }
-.papel { display: block; font-size: 11px; color: var(--muted-2); margin-top: 3px; }
+.papel { display: block; font-size: 12px; color: var(--muted-2); margin-top: 3px; }
 
-.acuse { display: block; font-size: 11px; font-weight: 600; color: var(--muted-2); margin-top: 3px; }
+.acuse { display: block; font-size: 12px; font-weight: 600; color: var(--muted-2); margin-top: 3px; }
 .acuse--ok { color: var(--success); }
 .acuse--mal { color: var(--danger); }
 
@@ -467,7 +467,7 @@ onMounted(async () => {
 .campo--ancho { grid-column: 1 / -1; }
 .campo .field__label { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; text-transform: none; }
 .campo__dequien { font-size: 12px; font-weight: 600; color: var(--muted); margin: 8px 0 3px; }
-.campo__actual { font-size: 11.5px; color: var(--muted-2); margin: 4px 0 0; overflow-wrap: anywhere; }
+.campo__actual { font-size: 12px; color: var(--muted-2); margin: 4px 0 0; overflow-wrap: anywhere; }
 .campo .input + .campo__actual { margin-bottom: 8px; }
 .input--ok { border-color: var(--success); }
 .input--error { border-color: var(--danger); }

@@ -51,10 +51,10 @@ function stepState(id, activeId) {
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700;
 }
-.stepper__dot.is-current { background: var(--gold); color: #fff; }
+.stepper__dot.is-current { background: var(--gold); color: var(--navy-deep); }
 .stepper__dot.is-done    { background: var(--teal); color: #fff; }
-.stepper__dot.is-todo    { background: #fff; color: #9AA6A3; border: 1.5px solid var(--border-2); }
-.stepper__label { font-size: 12.5px; font-weight: 500; color: #8C9895; white-space: nowrap; }
+.stepper__dot.is-todo    { background: #fff; color: var(--muted); border: 1.5px solid var(--border-2); }
+.stepper__label { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
 .stepper__label.is-current { font-weight: 700; color: var(--navy); }
 .stepper__line { flex: 1; height: 2px; background: var(--border); margin: 0 4px; }
 .stepper__line.is-done { background: var(--teal); }

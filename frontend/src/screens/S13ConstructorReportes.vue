@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { usePadep, SEED } from '@/stores/padep'
 import { REPORT_VARIABLES, buildRow } from '@/utils/report'
 import { plural } from '@/utils/format'
+import Icono from '@/components/Icono.vue'
 
 const { state, docentes, toggleReportVar, clearReportVars, clearReportFiltros, goTo } = usePadep()
 
@@ -35,7 +36,7 @@ const previewNota = computed(() =>
     <div class="filtros">
       <div class="pill-select">
         <span class="pill-select__legend">Departamento</span>
-        <span class="pill-select__icon" aria-hidden="true">⚑</span>
+        <span class="pill-select__icon"><Icono nombre="bandera" :tam="13" /></span>
         <select v-model="state.s13Dep" class="pill-select__control">
           <option v-for="d in depOptions" :key="d" :value="d">{{ d }}</option>
         </select>
@@ -62,7 +63,7 @@ const previewNota = computed(() =>
           {{ plural(state.reportVars.length, 'seleccionada', 'seleccionadas') }}
         </span>
         <button v-if="hayVariables" class="btn btn--ghost btn--sm vars__clear" @click="clearReportVars">
-          ✕ Limpiar variables
+          <Icono nombre="cerrar" :tam="14" /> Limpiar variables
         </button>
       </header>
       <div class="vars__body">
@@ -108,7 +109,7 @@ const previewNota = computed(() =>
 
     <div class="btn-row">
       <button class="btn btn--primary btn--lg" :disabled="!hayVariables" @click="goTo(14)">
-        <span aria-hidden="true">⬇</span> Generar reporte
+        <Icono nombre="bajar" /> Generar reporte
       </button>
       <span v-if="!hayVariables" class="hint">Selecciona al menos una variable para generar el reporte.</span>
     </div>
@@ -120,14 +121,14 @@ const previewNota = computed(() =>
 .pill-select { position: relative; flex: 0 0 240px; min-width: 0; }
 .pill-select__legend {
   position: absolute; top: -7px; left: 16px; padding: 0 6px; background: #fff;
-  font-size: 11px; font-weight: 500; color: #9CA3AF; z-index: 1;
+  font-size: 12px; font-weight: 500; color: #9CA3AF; z-index: 1;
 }
 .pill-select__icon, .pill-select__caret {
   position: absolute; top: 50%; transform: translateY(-50%);
   color: #9CA3AF; pointer-events: none;
 }
 .pill-select__icon { left: 16px; font-size: 15px; }
-.pill-select__caret { right: 18px; font-size: 10px; }
+.pill-select__caret { right: 18px; font-size: 12px; }
 .pill-select__control {
   width: 100%; appearance: none; background: #fff; border: 1px solid var(--border-3);
   border-radius: var(--r-pill); padding: 13px 40px; font-size: 14px; color: #374151;
@@ -149,14 +150,14 @@ const previewNota = computed(() =>
 .chip {
   display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px;
   border-radius: var(--r-pill); border: 1px solid var(--border-3); background: #fff;
-  font-family: inherit; font-size: 13.5px; font-weight: 600; color: #374151;
+  font-family: inherit; font-size: 14px; font-weight: 600; color: #374151;
   cursor: pointer; user-select: none;
 }
 .chip.is-on { border-color: var(--blue); background: var(--blue-bg); color: #1E40AF; }
 .chip__mark {
   width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; color: #fff;
+  font-size: 12px; font-weight: 700; color: #fff;
   border: 1.5px solid #C7CDD6; background: transparent;
 }
 .chip.is-on .chip__mark { border: none; background: var(--blue); }
@@ -164,5 +165,5 @@ const previewNota = computed(() =>
 .preview__empty { margin: 0; font-size: 14px; color: var(--muted-2); }
 .preview__table { border: 1px solid var(--border-3); border-radius: 10px; overflow: hidden; }
 .btn--lg { height: 44px; padding: 0 22px; }
-.hint { font-size: 12.5px; color: var(--muted-2); }
+.hint { font-size: 13px; color: var(--muted-2); }
 </style>

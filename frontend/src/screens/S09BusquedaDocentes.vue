@@ -7,6 +7,7 @@ import { CARRERAS } from '@/data/carreras'
 import { pillClass, estadoNotaTone, plural } from '@/utils/format'
 import AvisoError from '@/components/AvisoError.vue'
 import Paginador from '@/components/Paginador.vue'
+import Icono from '@/components/Icono.vue'
 
 /**
  * Búsqueda sobre MySQL (`GET /docentes`). Filtra el servidor, no el
@@ -56,7 +57,7 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
 
     <section class="card card--flat filtros">
       <header class="filtros__head">
-        <span aria-hidden="true">⛃</span>
+        <Icono nombre="filtro" />
         <h2 class="filtros__title">Filtrar información</h2>
         <span class="count-badge">{{ cargando ? '…' : plural(total, 'inscripción', 'inscripciones') }}</span>
       </header>
@@ -158,6 +159,6 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
 .is-clickable { cursor: pointer; }
 .is-loading tbody { opacity: .5; }
 .cell-name { font-size: 13px; font-weight: 600; color: var(--ink); }
-.cell-dpi { font-size: 11px; color: var(--muted-2); }
+.cell-dpi { font-size: 12px; color: var(--muted-2); }
 .notas { display: flex; gap: 4px; flex-wrap: wrap; }
 </style>

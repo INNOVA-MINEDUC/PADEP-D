@@ -5,6 +5,7 @@ import { usaCohorte } from '@/composables/usaCohorte'
 import ModuleStepper from '@/components/ModuleStepper.vue'
 import CohorteContext from '@/components/CohorteContext.vue'
 import AvisoError from '@/components/AvisoError.vue'
+import Icono from '@/components/Icono.vue'
 
 const { state, goTo } = usePadep()
 const { error, aviso, ocupado, carga, asigna, desasigna, guardaEnlace, borraEnlace } = usaCohorte()
@@ -115,7 +116,7 @@ async function guardaPersona() {
         </template>
 
         <div v-else class="card empty-state">
-          <div class="empty-state__icon" aria-hidden="true">👤</div>
+          <div class="empty-state__icon"><Icono nombre="persona" /></div>
           <p class="empty-state__title">Sin sedes disponibles</p>
           <p class="empty-state__hint">
             Primero agrega sedes en la pantalla anterior para poder asignarles un enlace.
@@ -191,8 +192,8 @@ async function guardaPersona() {
   padding: 22px; margin-bottom: 18px;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; align-items: end;
 }
-.asignar__label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
-.asignar .input, .asignar .select { border-radius: 10px; padding: 9px 11px; font-size: 13.5px; }
+.asignar__label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.asignar .input, .asignar .select { border-radius: 10px; padding: 9px 11px; font-size: 14px; }
 .asignar .btn-row { grid-column: 1 / -1; }
 .field--tight { margin-bottom: 0; }
 .table-wrap, .empty-state { margin-bottom: 26px; }

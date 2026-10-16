@@ -25,6 +25,19 @@ const { state, pideConfirmacion } = usePadep()
 const lista = ref(null)          // null = sin leer o falló
 const roles = ref([])            // [{ rol, usuarios, permisos }]
 const catalogo = ref([])         // [{ codigo, descripcion }]
+// Encabezado corto y sin jerga («cargar a MySQL», «volcado») para cada
+// permiso. La descripción de la API sigue en el tooltip; un código que no esté
+// aquí se pinta con ella, como antes.
+const ETIQUETAS = {
+  // Mismo alcance que `PERMISOS` de api/auth.py, en palabras de la pantalla.
+  'reportes.ver': 'Consultar cortes, docentes y configuración',
+  'documentos.cargar': 'Crear cortes, subir la nómina y cargar a la base',
+  'extraccion.ejecutar': 'Subir PDF, extraer y entregar',
+  'incidencias.resolver': 'Completar a mano',
+  'cohortes.gestionar': 'Editar cohortes, carreras, sedes y enlaces',
+  'usuarios.gestionar': 'Administrar usuarios y roles',
+}
+const etiquetaPermiso = p => ETIQUETAS[p.codigo] ?? p.descripcion
 const errorLista = ref('')
 const error = ref('')
 const aviso = ref('')
@@ -272,7 +285,7 @@ const fecha = (x) => (x ? new Date(x).toLocaleString('es-GT',
           <tr>
             <th>Rol</th>
             <th v-for="p in catalogo" :key="p.codigo" class="is-center" :title="p.descripcion">
-              {{ p.descripcion }}
+              {{ etiquetaPermiso(p) }}
             </th>
             <th><span class="sr-only">Guardar</span></th>
           </tr>
@@ -285,7 +298,7 @@ const fecha = (x) => (x ? new Date(x).toLocaleString('es-GT',
             </td>
             <td v-for="p in catalogo" :key="p.codigo" class="is-center">
               <input type="checkbox" :checked="tiene(r.rol, p.codigo)" :disabled="ocupado"
-                     :aria-label="`${r.rol}: ${p.descripcion}`" @change="alterna(r.rol, p.codigo)">
+                     :aria-label="`${r.rol}: ${etiquetaPermiso(p)}`" @change="alterna(r.rol, p.codigo)">
             </td>
             <td class="is-right">
               <span v-if="cambiado(r)" class="acciones">
@@ -304,7 +317,7 @@ const fecha = (x) => (x ? new Date(x).toLocaleString('es-GT',
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .section-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--navy-ink); }
 .seccion { margin-bottom: 34px; }
-.nota { margin: -6px 0 14px; font-size: 12.5px; color: var(--muted); }
+.nota { margin: -6px 0 14px; font-size: 13px; color: var(--muted); }
 
 .formulario {
   padding: 22px; margin-bottom: 18px;
@@ -314,9 +327,9 @@ const fecha = (x) => (x ? new Date(x).toLocaleString('es-GT',
 .formulario__ancho { grid-column: 1 / -1; margin: 0; }
 .formulario__doble { grid-column: span 2; }
 @media (max-width: 640px) { .formulario__doble { grid-column: 1 / -1; } }
-.formulario__label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.formulario__label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
 .formulario__ayuda { display: block; margin-top: 6px; font-size: 12px; line-height: 1.45; color: var(--muted); }
-.formulario .input, .formulario .select { border-radius: 10px; padding: 9px 11px; font-size: 13.5px; }
+.formulario .input, .formulario .select { border-radius: 10px; padding: 9px 11px; font-size: 14px; }
 .formulario .btn-row { grid-column: 1 / -1; }
 .field--tight { margin-bottom: 0; }
 
@@ -325,8 +338,8 @@ const fecha = (x) => (x ? new Date(x).toLocaleString('es-GT',
 .table tr.is-editando { background: var(--blue-bg); }
 .table tr.is-inactivo td { color: var(--muted); }
 .tu { font-weight: 400; color: var(--muted); font-size: 12px; }
-.cuenta { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
-.matriz th.is-center { font-size: 11.5px; font-weight: 600; line-height: 1.3; max-width: 130px; white-space: normal; }
+.cuenta { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.matriz th.is-center { font-size: 12px; font-weight: 600; line-height: 1.3; max-width: 130px; white-space: normal; }
 .is-center { text-align: center; }
 .matriz input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

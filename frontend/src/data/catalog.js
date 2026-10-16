@@ -10,6 +10,10 @@
  * que basta cualquiera. La API pide el suyo en cada ruta y devuelve 403 de
  * todos modos; esto es para no enseñar lo que no se va a poder usar. Un
  * módulo sin ninguna pantalla visible no sale.
+ *
+ * `maqueta: true` = la pantalla todavía pinta datos de ejemplo (`SEED`), no la
+ * base. El menú le pone la etiqueta «Vista previa» y la pantalla un aviso,
+ * para que nadie tome por reales un docente o un reporte inventados.
  */
 export const NAV = [
   {
@@ -38,15 +42,15 @@ export const NAV = [
   {
     id: 'm3', num: 3, title: 'Ficha Académica / Seguimiento',
     screens: [
-      { id: 11, title: 'Comparación de Nóminas', permiso: 'reportes.ver' },
-      { id: 12, title: 'Ficha Académica (detalle)', permiso: 'reportes.ver' },
+      { id: 11, title: 'Comparación de Nóminas', permiso: 'reportes.ver', maqueta: true },
+      { id: 12, title: 'Ficha Académica (detalle)', permiso: 'reportes.ver', maqueta: true },
     ],
   },
   {
     id: 'm4', num: 4, title: 'Reportes Dinámicos',
     screens: [
-      { id: 13, title: 'Constructor de Reportes', permiso: 'reportes.ver' },
-      { id: 14, title: 'Vista y Exportación', permiso: 'reportes.ver' },
+      { id: 13, title: 'Constructor de Reportes', permiso: 'reportes.ver', maqueta: true },
+      { id: 14, title: 'Vista y Exportación', permiso: 'reportes.ver', maqueta: true },
     ],
   },
   {

@@ -3,6 +3,7 @@ import { NAV, SEED } from '@/data/catalog'
 import { entra, yo, sal, cambiaPassword } from '@/api/auth'
 import { api } from '@/api/extraccion'
 import { guardaToken, hayToken, cuandoExpire } from '@/api/cliente'
+import { fijaCatalogo } from '@/data/carreras'
 
 /**
  * Store compartido de la aplicación.
@@ -34,6 +35,9 @@ const state = reactive({
   // --- Navegación ---
   active: 1,
   openModules: { m1: true, m2: false, m3: false, m4: false, m5: false, m6: false },
+  // Menú lateral en pantallas estrechas: escondido, se abre con el botón de la
+  // cabecera. En escritorio no se usa.
+  menuMovil: false,
 
   // --- Módulo 1: cohorte ---
   // Ya no es un borrador que se teclea: sale del corte elegido en la API de
@@ -179,6 +183,7 @@ const actions = {
       // Sin await: el proxy de extracción exige el token, así que esto no podía
       // salir antes del login, pero tampoco tiene por qué retrasar la entrada.
       actions.refrescaCohorte()
+      actions.cargaCarreras()
     } catch (e) {
       // El backend contesta «Credenciales invalidas» sin decir si falló el
       // correo o la contraseña; se enseña tal cual.
@@ -199,6 +204,7 @@ const actions = {
         state.loggedIn = true
         actions.aPantallaPermitida()
         actions.refrescaCohorte()
+        actions.cargaCarreras()
       } catch (e) {
         guardaToken('')
       }
@@ -222,6 +228,7 @@ const actions = {
     state.loginPass = ''
     state.active = 1
     state.profileOpen = false
+    state.menuMovil = false
     state.cambioPassword = false
     state.cohorte = { codigo: '', carrera: '', trimestre: null, id: '' }
     state.sedes = []
@@ -240,6 +247,7 @@ const actions = {
   /** Si la pantalla actual no está permitida, a la primera que sí. */
   aPantallaPermitida() {
     if (!pantallaPermitida(state.active)) state.active = primeraPantalla()
+    actions.abreModuloDe(state.active)
   },
   toggleShowPass() { state.showPass = !state.showPass },
   toggleProfile()  { state.profileOpen = !state.profileOpen },
@@ -253,6 +261,8 @@ const actions = {
     state.active = id
     state.drawerDocenteId = null
     state.profileOpen = false
+    state.menuMovil = false
+    actions.abreModuloDe(id)
   },
   goHome() { actions.goTo(primeraPantalla()) },
   /** Al catálogo de carreras con el alta abierta y `codigo` ya escrito. */
@@ -260,8 +270,33 @@ const actions = {
     state.carreraPorRegistrar = String(codigo)
     actions.goTo(4)
   },
-  toggleModule(id) { state.openModules[id] = !state.openModules[id] },
+  /**
+   * Acordeón: abrir un módulo cierra los demás. Antes se quedaban todos
+   * abiertos y el menú acababa más alto que la pantalla.
+   */
+  toggleModule(id) {
+    const abrir = !state.openModules[id]
+    for (const k of Object.keys(state.openModules)) state.openModules[k] = false
+    state.openModules[id] = abrir
+  },
+  /** Deja abierto (solo) el módulo de esa pantalla, p. ej. al llegar por un enlace. */
+  abreModuloDe(idPantalla) {
+    const m = NAV.find(x => x.screens.some(sc => sc.id === idPantalla))
+    if (!m) return
+    for (const k of Object.keys(state.openModules)) state.openModules[k] = k === m.id
+  },
+  toggleMenuMovil() { state.menuMovil = !state.menuMovil },
+  cierraMenuMovil() { state.menuMovil = false },
   submitTopSearch() { actions.goTo(9) },
+
+  // --- Carreras ---
+  /**
+   * Suma el catálogo de la base a las etiquetas de carrera (ver
+   * `data/carreras.js`). En silencio si falla: quedan los nombres de siempre.
+   */
+  async cargaCarreras() {
+    try { fijaCatalogo(await api.carreras()) } catch (e) { /* respaldo fijo */ }
+  },
 
   // --- Cohorte ---
   /**

@@ -38,9 +38,9 @@ defineProps({
 .preview__line { display: block; height: 3px; background: var(--border-3); border-radius: 2px; margin-bottom: 4px; }
 .preview__meta { flex: 1; min-width: 0; }
 .preview__name { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: var(--ink); }
-.preview__note { margin: 0; font-size: 11px; color: var(--muted-2); }
+.preview__note { margin: 0; font-size: 12px; color: var(--muted-2); }
 .preview__badge {
-  font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
   background: #DCFCE7; color: #166534;
 }
 </style>

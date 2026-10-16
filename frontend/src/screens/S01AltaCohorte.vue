@@ -130,8 +130,8 @@ const etiqueta = (c) => {
     <p class="eyebrow eyebrow--plain">Configuración de Cohorte</p>
     <h1 class="page-title">Alta de Cohorte</h1>
     <p class="page-sub">
-      Dar de alta la entrega de una carrera en un trimestre. Todo lo que se suba
-      después vive en la carpeta de su corte.
+      Registrar la entrega de una carrera en un trimestre. Después, en Extracción,
+      se suben sus documentos.
     </p>
 
     <AvisoError :mensaje="error" />
@@ -273,9 +273,9 @@ const etiqueta = (c) => {
 .altas__btn:hover { border-color: var(--blue); }
 .altas__btn.is-elegida { border-color: var(--blue); background: var(--blue-bg); }
 .altas__etiqueta { font-size: 13px; font-weight: 600; color: var(--ink); }
-.altas__id { font-size: 11.5px; color: var(--muted-2); }
+.altas__id { font-size: 12px; color: var(--muted-2); }
 .altas__marca {
-  flex-shrink: 0; font-size: 11px; font-weight: 700; color: #1E40AF;
+  flex-shrink: 0; font-size: 12px; font-weight: 700; color: #1E40AF;
   text-transform: uppercase; letter-spacing: .04em;
 }
 </style>

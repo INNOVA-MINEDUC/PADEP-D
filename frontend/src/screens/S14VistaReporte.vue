@@ -60,7 +60,7 @@ const filas = computed(() =>
 }
 .chips__label { color: var(--muted); }
 .chips__item {
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
   padding: 3px 10px; border-radius: var(--r-pill); background: var(--teal-bg); color: var(--navy);
 }
 .table-wrap { margin-bottom: 20px; }

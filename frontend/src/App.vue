@@ -8,6 +8,7 @@ import AppSidebar from '@/components/AppSidebar.vue'
 import DocenteDrawer from '@/components/DocenteDrawer.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CambioPassword from '@/components/CambioPassword.vue'
+import Icono from '@/components/Icono.vue'
 
 import S01AltaCohorte from '@/screens/S01AltaCohorte.vue'
 import S02Sedes from '@/screens/S02Sedes.vue'
@@ -54,6 +55,9 @@ const SCREENS = {
 
 // `active` null = la sesión no puede ver ninguna pantalla (un rol sin permisos).
 const currentScreen = computed(() => SCREENS[state.active] ?? null)
+
+// Pantallas que todavía pintan datos de ejemplo (`maqueta` en el catálogo).
+const esMaqueta = computed(() => currentModule.value.screens.some(s => s.id === state.active && s.maqueta))
 </script>
 
 <template>
@@ -79,11 +83,19 @@ const currentScreen = computed(() => SCREENS[state.active] ?? null)
         </nav>
 
         <main class="shell__main">
+          <p v-if="esMaqueta" class="preview-banner" role="note">
+            <Icono nombre="aviso" :tam="18" />
+            <span>
+              <strong>Vista previa con datos de ejemplo.</strong>
+              Esta pantalla todavía no lee la base: los docentes, notas y totales que
+              aparecen aquí son inventados y no deben usarse para decidir nada.
+            </span>
+          </p>
           <component :is="currentScreen" v-if="currentScreen" :key="state.active" />
           <!-- Un rol sin ningún permiso entra y no ve nada: se le dice por qué
                en vez de dejarle una pantalla en blanco. -->
           <div v-else class="card empty-state">
-            <div class="empty-state__icon" aria-hidden="true">🔒</div>
+            <div class="empty-state__icon"><Icono nombre="candado" /></div>
             <p class="empty-state__title">Tu rol todavía no tiene permisos</p>
             <p class="empty-state__hint">
               Entraste como <strong>{{ state.usuario?.rol }}</strong>, pero ese rol no tiene
@@ -104,17 +116,17 @@ const currentScreen = computed(() => SCREENS[state.active] ?? null)
 .arranque { min-height: 100vh; background: var(--bg); }
 .shell { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); color: var(--text); }
 .shell__body { display: flex; flex: 1; min-height: 0; }
-@media (max-width: 900px) { .shell__body { flex-direction: column; } }
 .shell__content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 .crumbs {
   display: flex; align-items: center; gap: 6px; padding: 16px 32px;
   background: #fff; border-bottom: 1px solid var(--border-2);
-  box-shadow: 0 1px 3px rgba(11,30,58,.04); font-size: 12.5px; color: var(--muted);
+  box-shadow: 0 1px 3px rgba(11,30,58,.04); font-size: 13px; color: var(--muted);
+  flex-wrap: wrap;
 }
-.crumbs__sep { color: #B7C0BD; }
+.crumbs__sep { color: var(--muted); }
 .crumbs__current { color: var(--navy); font-weight: 700; }
 
-.shell__main { padding: 32px 36px; max-width: 1180px; width: 100%; }
+.shell__main { padding: 32px 36px; max-width: 1320px; width: 100%; }
 @media (max-width: 640px) { .shell__main { padding: 24px 18px; } .crumbs { padding: 14px 18px; } }
 </style>

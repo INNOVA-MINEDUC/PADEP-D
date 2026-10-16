@@ -18,6 +18,8 @@ import { ref, onMounted } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
 import AvisoError from '@/components/AvisoError.vue'
+import Icono from '@/components/Icono.vue'
+import { fijaCatalogo } from '@/data/carreras'
 
 const { state, pideConfirmacion } = usePadep()
 
@@ -39,6 +41,7 @@ const editando = ref('')       // código de la que se edita; '' = alta
 async function carga() {
   try {
     lista.value = await api.carreras()
+    fijaCatalogo(lista.value)   // las etiquetas del resto de pantallas, al día
     errorLista.value = ''
     caida.value = false
   } catch (e) {
@@ -130,7 +133,7 @@ const borra = (c) => pideConfirmacion(
     <h1 class="page-title">Catálogo de Carreras</h1>
     <p class="page-sub">
       Registrar cada carrera antes de cargar su primer corte a la base: la carga
-      falla si la carrera no está aquí. Una carrera no es de ninguna cohorte.
+      falla si la carrera no está aquí. Una misma carrera sirve para varias cohortes.
     </p>
 
     <!-- El de borrar: con el formulario cerrado no tiene otro sitio. -->
@@ -194,7 +197,7 @@ const borra = (c) => pideConfirmacion(
 
     <!-- 503: la base no responde. NO es «no hay carreras». -->
     <div v-if="caida" class="card empty-state">
-      <div class="empty-state__icon" aria-hidden="true">⚠️</div>
+      <div class="empty-state__icon"><Icono nombre="aviso" /></div>
       <p class="empty-state__title">La base de datos no responde</p>
       <p class="empty-state__hint">
         No se puede leer el catálogo ahora mismo. {{ errorLista }}
@@ -257,10 +260,10 @@ const borra = (c) => pideConfirmacion(
 .formulario__ancho { grid-column: 1 / -1; margin: 0; }
 .formulario__doble { grid-column: span 2; }
 @media (max-width: 640px) { .formulario__doble { grid-column: 1 / -1; } }
-.formulario__label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.formulario__label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
 .formulario__opcional { font-weight: 400; color: var(--muted-2); }
 .formulario__ayuda { display: block; margin-top: 6px; font-size: 12px; line-height: 1.45; color: var(--muted); }
-.formulario .input, .formulario .select { border-radius: 10px; padding: 9px 11px; font-size: 13.5px; }
+.formulario .input, .formulario .select { border-radius: 10px; padding: 9px 11px; font-size: 14px; }
 .formulario .btn-row { grid-column: 1 / -1; }
 .field--tight { margin-bottom: 0; }
 

@@ -102,7 +102,7 @@ async function guarda() {
 .dialog__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
 .dialog__actions .btn { height: 38px; border-radius: 10px; font-size: 13px; }
 .campo { display: block; margin-bottom: 14px; }
-.campo span { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.campo span { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
 .campo small { display: block; margin-top: 5px; font-size: 12px; color: var(--muted); }
-.campo .input { width: 100%; border-radius: 10px; padding: 9px 11px; font-size: 13.5px; }
+.campo .input { width: 100%; border-radius: 10px; padding: 9px 11px; font-size: 14px; }
 </style>

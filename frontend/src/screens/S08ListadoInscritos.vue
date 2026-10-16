@@ -1,9 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
 import { usaDocentes } from '@/composables/usaDocentes'
-import { CARRERAS } from '@/data/carreras'
+import { CARRERAS, enBase } from '@/data/carreras'
 import { pillClass, estatusTone, capital } from '@/utils/format'
 import AvisoError from '@/components/AvisoError.vue'
 import Paginador from '@/components/Paginador.vue'
@@ -22,19 +22,33 @@ const { state } = usePadep()
 const filtros = () => ({ cohorte: state.cohorte.codigo, carrera: state.s8Carrera })
 const { filas, total, paginas, pagina, cargando, error, todas } = usaDocentes(filtros, POR_PAGINA)
 
-// Cuántos hay por carrera, para las pestañas. Tres peticiones de una fila.
+// Las carreras salen del catálogo de la base (ver `data/carreras.js`), no de
+// una lista fija: con 35/36 fijos salía una «Carrera 36 (0)» que no existe y
+// faltaban la 80 y la 81. Sin catálogo todavía, las de siempre.
+const codigos = computed(() => enBase.codigos ?? Object.keys(CARRERAS))
+
+// Cuántos hay por carrera, para las pestañas. Una petición de una fila por
+// pestaña.
 const cuenta = ref({})
 async function cuenta_() {
   const c = state.cohorte.codigo
+  const ks = codigos.value
   const n = async (carrera) => (await api.docentes({ cohorte: c, carrera, por_pagina: 1 })).total
   try {
-    const [todas_, ...porCarrera] = await Promise.all([n(''), ...Object.keys(CARRERAS).map(n)])
-    cuenta.value = { '': todas_, ...Object.fromEntries(Object.keys(CARRERAS).map((k, i) => [k, porCarrera[i]])) }
+    const [todas_, ...porCarrera] = await Promise.all([n(''), ...ks.map(n)])
+    cuenta.value = { '': todas_, ...Object.fromEntries(ks.map((k, i) => [k, porCarrera[i]])) }
   } catch { cuenta.value = {} }   // el error ya lo enseña la lista
 }
-watch(() => state.cohorte.codigo, cuenta_, { immediate: true })
+watch([() => state.cohorte.codigo, codigos], cuenta_, { immediate: true })
 
-const pestanas = [{ id: '', label: 'Todas' }, ...Object.keys(CARRERAS).map(k => ({ id: k, label: `Carrera ${k}` }))]
+// Una pestaña por carrera con inscritos en esta cohorte (más la elegida, para
+// no dejarla sin pestaña). Hasta saber los totales, todas.
+const pestanas = computed(() => [
+  { id: '', label: 'Todas' },
+  ...codigos.value
+    .filter(k => cuenta.value[k] == null || cuenta.value[k] > 0 || state.s8Carrera === k)
+    .map(k => ({ id: k, label: `Carrera ${k}`, title: CARRERAS[k] })),
+])
 
 // --- Exportar: el filtro entero, no la página que se ve ---
 const exportando = ref(false)
@@ -82,7 +96,7 @@ async function exporta() {
       <button
         v-for="p in pestanas" :key="p.id"
         class="segmented__tab" :class="{ 'is-active': state.s8Carrera === p.id }"
-        role="tab" :aria-selected="state.s8Carrera === p.id"
+        role="tab" :aria-selected="state.s8Carrera === p.id" :title="p.title"
         @click="state.s8Carrera = p.id">
         {{ p.label }}<template v-if="cuenta[p.id] != null"> ({{ cuenta[p.id].toLocaleString('es-GT') }})</template>
       </button>
@@ -124,12 +138,12 @@ async function exporta() {
 
 <style scoped>
 .segmented {
-  display: inline-flex; gap: 2px; padding: 4px; border-radius: 9px;
+  display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 4px; border-radius: 9px;
   background: var(--teal-bg); margin-bottom: 18px;
 }
 .segmented__tab {
   padding: 7px 16px; border-radius: 7px; border: none; cursor: pointer;
-  font-family: inherit; font-size: 13.5px; font-weight: 600;
+  font-family: inherit; font-size: 14px; font-weight: 600;
   background: transparent; color: var(--teal);
 }
 .segmented__tab.is-active { background: #fff; color: var(--navy); }

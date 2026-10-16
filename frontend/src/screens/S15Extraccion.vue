@@ -38,11 +38,27 @@ const pista = computed(() => {
   const d = tipos.value[tipo.value]
   if (!d) return ''
   return d.archivos > 1
-    ? `Sube los ${d.archivos} listados en el orden en que vienen. El nombre del archivo da igual.`
+    ? `Sube de 1 a ${d.archivos} listados, en el orden en que vienen. El nombre del archivo da igual.`
     : `~${d.paginas_tipicas} páginas.`
 })
 
-const bonito = n => String(n).replace(/_/g, ' ')
+// Nombres para la gente de los tipos de documento, de trabajo, de estado y de
+// cuenta que manda la API (`ubicacion_sedes`, `correccion`, `en_cola`…). Solo
+// cambia lo que se pinta: el valor que viaja a la API sigue siendo el código.
+const NOMBRES = {
+  asistencia: 'Asistencia', docentes: 'Docentes', ubicacion_sedes: 'Ubicación de sedes',
+  reporte_resultados: 'Reporte de resultados', control_academico: 'Control académico',
+  entrega: 'Entrega', carga: 'Carga a la base', correccion: 'Corrección a mano',
+  terminado: 'Terminado', extrayendo: 'En proceso', en_cola: 'En cola', fallido: 'Fallido',
+  cancelado: 'Cancelado', curando: 'Curando', notas: 'Notas', incidencias: 'Incidencias',
+  documentos: 'Documentos',
+}
+const bonito = (n) => {
+  const k = String(n)
+  if (NOMBRES[k]) return NOMBRES[k]
+  const t = k.replace(/_/g, ' ')
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
 
 // El trabajo trae las cuatro partes sueltas, no el id armado. Se rearma igual
 // que lo hace el servidor, y solo para comparar con el corte elegido y marcar
@@ -136,10 +152,12 @@ async function avisaPendientes() {
 async function extrae() {
   error.value = ''
   const elegidos = archivos.value.slice(0, ranuras.value).filter(Boolean)
-  if (elegidos.length < ranuras.value) {
+  // `archivos` es el máximo, no lo exigido: un corte puede traer un solo
+  // listado y la API acepta de 1 a `archivos` (rutas/cortes.py).
+  if (!elegidos.length) {
     // Se dice qué falta en vez de no hacer nada: un submit que se ignora en
     // silencio parece que la página está rota.
-    error.value = ranuras.value > 1 ? 'Falta alguno de los listados.' : 'Elige un PDF.'
+    error.value = ranuras.value > 1 ? 'Elige al menos un listado.' : 'Elige un PDF.'
     return
   }
   if (await envia(elegidos, tipo.value)) {
@@ -186,6 +204,22 @@ function salidaFinal(t) {
 // hasta diez por fila y solo sirven para diagnosticar: van al detalle.
 const otrasSalidas = t => t.salidas.filter(n => n !== salidaFinal(t))
 
+// La columna Avance solo dice algo mientras corre un trabajo; el resto del
+// tiempo era una columna entera de rayas.
+const hayEnCurso = computed(() => trabajos.value.some(t => t.estado === 'extrayendo'))
+const columnas = computed(() => 4 + (filtrando.value ? 0 : 1) + (hayEnCurso.value ? 1 : 0))
+
+// Índice de la página: es larga y lo que más se usa (cargar, trabajos) queda
+// abajo del todo.
+const PASOS = [
+  { id: 'paso-corte', label: 'Corte' },
+  { id: 'paso-extraccion', label: 'Extracción' },
+  { id: 'paso-entrega', label: 'Entrega' },
+  { id: 'paso-carga', label: 'Carga a la base' },
+  { id: 'paso-trabajos', label: 'Trabajos' },
+]
+const irA = id => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
 watch(tipos, (t) => { if (!tipo.value) tipo.value = Object.keys(t)[0] ?? '' })
 watch(elegido, () => { archivos.value = [] })
 
@@ -205,14 +239,20 @@ onMounted(async () => {
     <p class="eyebrow eyebrow--plain">Extracción y Carga</p>
     <h1 class="page-title">Extracción de Documentos</h1>
     <p class="page-sub">
-      Sube los PDF escaneados del corte y descarga el Excel. Un trabajo a la vez:
-      cada extracción ocupa todos los núcleos.
+      Sube los PDF escaneados del corte, revisa la entrega y cárgala a la base.
+      Los documentos se procesan de uno en uno, en orden de llegada.
     </p>
+
+    <nav class="pasos" aria-label="Secciones de la página">
+      <button v-for="(p, i) in PASOS" :key="p.id" type="button" class="pasos__btn" @click="irA(p.id)">
+        <span class="pasos__num">{{ i + 1 }}</span>{{ p.label }}
+      </button>
+    </nav>
 
     <AvisoError :mensaje="error" />
 
     <!-- ---------- Corte ---------- -->
-    <section class="card card--flat bloque">
+    <section id="paso-corte" class="card card--flat bloque">
       <div class="card__head">Corte</div>
       <div class="card__body">
         <p class="nota">
@@ -242,8 +282,8 @@ onMounted(async () => {
             <template v-if="corte.corte !== 1"> · corte {{ corte.corte }}</template>
           </p>
           <p class="nota">
-            <span class="mono">{{ corte.carpeta }}</span>
-            · {{ extraidos }}/5 documentos extraídos ·
+            <!-- La carpeta queda a un pase de ratón: es dato técnico. -->
+            <span :title="`Carpeta: ${corte.carpeta}`">{{ extraidos }} de 5 documentos extraídos</span> ·
             <template v-if="corte.nomina">nómina: {{ corte.nomina }}</template>
             <strong v-else>sin nómina</strong>
           </p>
@@ -258,7 +298,7 @@ onMounted(async () => {
     </section>
 
     <!-- ---------- Nueva extracción ---------- -->
-    <section class="card card--flat bloque">
+    <section id="paso-extraccion" class="card card--flat bloque">
       <div class="card__head">Nueva extracción</div>
       <div class="card__body">
         <!-- Se avisa ANTES de que nadie elija un archivo: el PDF se sube entero
@@ -303,7 +343,7 @@ onMounted(async () => {
     </section>
 
     <!-- ---------- Entrega ---------- -->
-    <section class="card card--flat bloque">
+    <section id="paso-entrega" class="card card--flat bloque">
       <div class="card__head">Entrega</div>
       <div class="card__body">
         <p class="nota">
@@ -329,10 +369,10 @@ onMounted(async () => {
             @click="lanzaEntrega">
             Curar y auditar
           </button>
-          <button class="btn-link" @click="goTo(16)">completar a mano →</button>
+          <button class="btn-link" @click="goTo(16)">Completar a mano →</button>
         </div>
 
-        <h3 class="sub-titulo">Cargar a la base</h3>
+        <h3 id="paso-carga" class="sub-titulo">Cargar a la base</h3>
 
         <!-- Las tres formas de GET /cortes/{id}/carga. `disponible: false` no es
              un error —lo normal es que la base no esté levantada—: se pinta el
@@ -375,8 +415,10 @@ onMounted(async () => {
             <span class="field__label">Nombre de la cohorte</span>
             <input v-model="etiquetas.cohorte_nombre" class="input" placeholder="Onceava">
           </label>
+          <!-- La acción que cierra todo el flujo: botón principal, no de
+               contorno como si fuera secundaria. -->
           <button
-            class="btn btn--outline"
+            class="btn btn--primary"
             :disabled="!puedeCargar || ocupado"
             :title="puedeCargar ? '' : 'Primero hay que entregar'"
             @click="lanzaCarga">
@@ -387,7 +429,7 @@ onMounted(async () => {
     </section>
 
     <!-- ---------- Trabajos ---------- -->
-    <div class="trabajos__cabecera">
+    <div id="paso-trabajos" class="trabajos__cabecera">
       <h2 class="sub-titulo sub-titulo--pegado">Trabajos</h2>
       <!-- Filtrado de entrada, pero nunca a la fuerza: la cola es una y global,
            y sin poder mirar los de fuera un trabajo «en cola» que no arranca no
@@ -415,12 +457,12 @@ onMounted(async () => {
           <tr>
             <th>Documento</th>
             <th v-if="!filtrando">Corte</th>
-            <th>Estado</th><th>Avance</th><th>Resultado</th><th />
+            <th>Estado</th><th v-if="hayEnCurso">Avance</th><th>Resultado</th><th><span class="sr-only">Acciones</span></th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!trabajos.length">
-            <td :colspan="filtrando ? 5 : 6" class="empty">
+            <td :colspan="columnas" class="empty">
               {{ filtrando ? 'Este corte todavía no tiene ninguno.' : 'Todavía no hay ninguno.' }}
             </td>
           </tr>
@@ -438,7 +480,7 @@ onMounted(async () => {
                   {{ bonito(estadoDe(t)) }}{{ t.puesto_en_cola ? ` nº ${t.puesto_en_cola}` : '' }}
                 </span>
               </td>
-              <td class="celda-avance">
+              <td v-if="hayEnCurso" class="celda-avance">
                 <!-- Mientras corre: barra y reloj, que es lo que contesta «¿va
                      o está colgado?». El resto de contadores, en el detalle. -->
                 <template v-if="t.estado === 'extrayendo'">
@@ -458,10 +500,10 @@ onMounted(async () => {
               </td>
               <td class="acciones">
                 <button class="btn-link" @click="verRegistro(t.id)">
-                  {{ registroDe === t.id ? 'ocultar detalle' : 'ver detalle' }}
+                  {{ registroDe === t.id ? 'Ocultar detalle' : 'Ver detalle' }}
                 </button>
                 <button class="btn-link btn-link--danger" @click="borra(t)">
-                  {{ vivo(t) ? 'cancelar' : 'borrar' }}
+                  {{ vivo(t) ? 'Cancelar' : 'Borrar' }}
                 </button>
               </td>
             </tr>
@@ -470,7 +512,7 @@ onMounted(async () => {
                  contador de páginas, la última línea del log, el error en crudo
                  y los CSV intermedios. Antes ocupaba la fila entera. -->
             <tr v-if="registroDe === t.id" class="detalle">
-              <td :colspan="filtrando ? 5 : 6">
+              <td :colspan="columnas">
                 <dl class="detalle__datos">
                   <div v-if="t.archivos.length">
                     <dt>Archivos</dt>
@@ -524,7 +566,20 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.bloque { margin-bottom: 20px; }
+.bloque { margin-bottom: 20px; scroll-margin-top: 80px; }
+#paso-carga, #paso-trabajos { scroll-margin-top: 80px; }
+
+.pasos { display: flex; flex-wrap: wrap; gap: 8px; margin: -8px 0 22px; }
+.pasos__btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px;
+  border: 1px solid var(--border-2); border-radius: var(--r-pill); background: #fff;
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer;
+}
+.pasos__btn:hover { border-color: var(--teal); background: var(--teal-bg); }
+.pasos__num {
+  width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--teal-bg); color: var(--teal); font-size: 12px; font-weight: 700;
+}
 .nota--suelta { margin-top: 8px; }
 .cuenta { margin-left: 10px; font-weight: 400; color: var(--muted); }
 .nota { font-size: 13px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
@@ -548,7 +603,7 @@ onMounted(async () => {
   border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 12px;
 }
 
-.celda-corte { font-size: 12.5px; color: var(--muted); }
+.celda-corte { font-size: 13px; color: var(--muted); }
 /* Los de otro corte se apagan: en la vista sin filtro hay que poder localizar
    los propios de un vistazo. */
 .celda-corte .es-otro { opacity: .65; font-style: italic; }
@@ -559,7 +614,7 @@ onMounted(async () => {
 .fila > .btn { margin-bottom: 18px; }
 
 .falta { margin: 0 0 12px; padding-left: 20px; font-size: 13px; color: var(--warning); }
-.recorta { max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--muted); }
+.recorta { max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
 .es-mal { color: var(--danger); }
 .es-curso { color: var(--warning); }
 
@@ -567,7 +622,7 @@ onMounted(async () => {
 .celda-avance .barra { max-width: 11rem; margin: 6px 0; }
 
 .descarga {
-  display: inline-block; margin: 0 6px 6px 0; padding: 3px 8px; font-size: 11.5px;
+  display: inline-block; margin: 0 6px 6px 0; padding: 3px 8px; font-size: 12px;
   background: var(--blue-bg); border: 1px solid var(--blue-br); color: var(--blue);
   border-radius: var(--r-sm); cursor: pointer; font-family: var(--mono);
 }
@@ -579,10 +634,10 @@ onMounted(async () => {
 .detalle > td { background: var(--bg-soft); padding: 16px; }
 .detalle__datos { margin: 0; display: grid; gap: 8px; }
 .detalle__datos > div { display: flex; gap: 10px; align-items: baseline; }
-.detalle__datos dt { flex: 0 0 8rem; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-2); }
+.detalle__datos dt { flex: 0 0 8rem; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-2); }
 .detalle__datos dd { margin: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .detalle__accion { display: block; margin-top: 6px; font-size: 12px; }
-.detalle__titulo { margin: 16px 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-2); }
+.detalle__titulo { margin: 16px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-2); }
 
 .registro {
   background: var(--bg-soft); border: 1px solid var(--border-2); border-radius: var(--r-sm);

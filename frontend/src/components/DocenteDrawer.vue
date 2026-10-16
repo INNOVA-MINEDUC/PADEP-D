@@ -5,6 +5,7 @@ import { api } from '@/api/extraccion'
 import { iniciales, pillClass, estatusTone, estadoNotaTone, capital } from '@/utils/format'
 import { useEscape } from '@/utils/useEscape'
 import AvisoError from '@/components/AvisoError.vue'
+import Icono from '@/components/Icono.vue'
 
 /**
  * Consulta rápida de un docente: `GET /docentes/{codigo}`, pedido al abrir.
@@ -47,7 +48,7 @@ useEscape(() => { if (state.drawerDocenteId) closeDrawer() })
     <aside class="drawer" role="dialog" aria-modal="true" aria-label="Consulta rápida de docente">
       <header class="drawer__head">
         <span class="drawer__eyebrow">Consulta rápida</span>
-        <button class="drawer__close" aria-label="Cerrar" @click="closeDrawer">✕</button>
+        <button class="drawer__close" aria-label="Cerrar" @click="closeDrawer"><Icono nombre="cerrar" :tam="18" /></button>
       </header>
 
       <div class="drawer__body">
@@ -140,7 +141,7 @@ useEscape(() => { if (state.drawerDocenteId) closeDrawer() })
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 22px; border-bottom: 1px solid var(--border-3); flex-shrink: 0;
 }
-.drawer__eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); }
+.drawer__eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); }
 .drawer__close {
   width: 32px; height: 32px; border: none; background: transparent; border-radius: var(--r-sm);
   color: var(--muted-2); font-size: 18px; cursor: pointer;
@@ -184,7 +185,7 @@ useEscape(() => { if (state.drawerDocenteId) closeDrawer() })
 .drawer__item { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .drawer__item-title { font-size: 13px; color: var(--ink); }
 .drawer__score { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-.drawer__warn { font-size: 11.5px; color: var(--warning); }
+.drawer__warn { font-size: 12px; color: var(--warning); }
 
 .drawer__foot { display: flex; gap: 10px; padding: 16px 22px; border-top: 1px solid var(--border-3); flex-shrink: 0; }
 .drawer__cta { flex: 1; height: 42px; }

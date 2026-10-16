@@ -2,8 +2,9 @@
 import { computed } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { iniciales } from '@/utils/format'
+import Icono from '@/components/Icono.vue'
 
-const { state, toggleProfile, goHome, logout, submitTopSearch, abreCambioPassword } = usePadep()
+const { state, toggleProfile, goHome, logout, submitTopSearch, abreCambioPassword, toggleMenuMovil } = usePadep()
 
 // Del token, no inventado: nombre, rol y correo vienen de /api/auth/me.
 const usuario = computed(() => ({
@@ -15,6 +16,16 @@ const usuario = computed(() => ({
 
 <template>
   <header class="topbar">
+    <!-- Solo en pantallas estrechas: abre el menú lateral como cajón. -->
+    <button
+      class="topbar__icon-btn topbar__menu"
+      :aria-expanded="state.menuMovil"
+      aria-controls="menu-principal"
+      :aria-label="state.menuMovil ? 'Cerrar menú' : 'Abrir menú'"
+      @click="toggleMenuMovil">
+      <Icono :nombre="state.menuMovil ? 'cerrar' : 'menu'" :tam="20" />
+    </button>
+
     <div class="topbar__brand">
       <div class="topbar__mark" aria-hidden="true">P</div>
       <div>
@@ -25,19 +36,23 @@ const usuario = computed(() => ({
 
     <div class="topbar__divider" aria-hidden="true" />
 
+    <!-- Busca docentes y nada más (escribe en el filtro de S09): el texto de
+         antes prometía también sedes y cohortes. -->
     <div class="topbar__search">
       <span class="topbar__search-icon" aria-hidden="true" />
       <input
         v-model="state.s9Query"
         type="search"
-        placeholder="Buscar docente, sede o cohorte..."
-        aria-label="Buscar docente, sede o cohorte"
+        placeholder="Buscar docente por nombre, código o CUI…"
+        aria-label="Buscar docente por nombre, código PADEP o CUI"
         @keydown.enter="submitTopSearch">
     </div>
 
     <div class="topbar__spacer" />
 
-    <button class="topbar__icon-btn" title="Inicio" aria-label="Inicio" @click="goHome">⌂</button>
+    <button class="topbar__home" @click="goHome">
+      <Icono nombre="inicio" :tam="17" /><span class="topbar__home-text">Inicio</span>
+    </button>
     <div class="topbar__divider topbar__divider--sm" aria-hidden="true" />
 
     <div class="topbar__profile">
@@ -51,7 +66,7 @@ const usuario = computed(() => ({
           <span class="topbar__identity-name">{{ usuario.nombre }}</span>
           <span class="topbar__identity-role">{{ usuario.cargo }}</span>
         </span>
-        <span class="topbar__chevron" aria-hidden="true">{{ state.profileOpen ? '▲' : '▼' }}</span>
+        <span class="topbar__chevron" :class="{ 'is-open': state.profileOpen }" aria-hidden="true">›</span>
       </button>
 
       <div v-if="state.profileOpen" class="menu" role="menu">
@@ -63,11 +78,11 @@ const usuario = computed(() => ({
           </span>
         </div>
         <div class="menu__group">
-          <button class="menu__item" role="menuitem" @click="goHome"><span>⌂</span>Inicio</button>
-          <button class="menu__item" role="menuitem" @click="abreCambioPassword"><span>🔑</span>Cambiar contraseña</button>
+          <button class="menu__item" role="menuitem" @click="goHome"><Icono nombre="inicio" />Inicio</button>
+          <button class="menu__item" role="menuitem" @click="abreCambioPassword"><Icono nombre="llave" />Cambiar contraseña</button>
         </div>
         <div class="menu__group menu__group--top">
-          <button class="menu__item menu__item--danger" role="menuitem" @click="logout"><span>⇥</span>Cerrar sesión</button>
+          <button class="menu__item menu__item--danger" role="menuitem" @click="logout"><Icono nombre="salir" />Cerrar sesión</button>
         </div>
       </div>
     </div>
@@ -78,6 +93,9 @@ const usuario = computed(() => ({
 .topbar {
   display: flex; align-items: center; gap: 18px; padding: 0 24px; height: 64px;
   flex-shrink: 0; background: var(--navy-deep); border-bottom: 1px solid rgba(255,255,255,.08);
+  /* Fija arriba: en las pantallas largas no se pierde ni la cabecera ni el
+     menú (que es sticky debajo de ella). */
+  position: sticky; top: 0; z-index: 90;
 }
 .topbar__brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .topbar__mark {
@@ -85,7 +103,7 @@ const usuario = computed(() => ({
   display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;
 }
 .topbar__name { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -.01em; line-height: 1.15; }
-.topbar__sub { font-size: 10.5px; font-weight: 500; color: #8FA3B2; letter-spacing: .02em; }
+.topbar__sub { font-size: 12px; font-weight: 500; color: #8FA3B2; letter-spacing: .02em; }
 .topbar__divider { width: 1px; height: 28px; background: rgba(255,255,255,.1); }
 .topbar__divider--sm { height: 26px; margin: 0 4px; }
 .topbar__spacer { flex: 1; }
@@ -108,6 +126,26 @@ const usuario = computed(() => ({
   color: #C7D2D8; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
 }
 .topbar__icon-btn:hover { background: rgba(255,255,255,.08); }
+.topbar__menu { display: none; margin-left: -8px; }
+
+.topbar__home {
+  display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 12px;
+  border-radius: 9px; background: transparent; border: none; cursor: pointer;
+  color: #C7D2D8; font-family: inherit; font-size: 13px; font-weight: 600;
+}
+.topbar__home:hover { background: rgba(255,255,255,.08); color: #fff; }
+
+/* Estrecho: menú de hamburguesa, sin el buscador ni el texto del perfil (el
+   buscador sigue en S09). Antes la cabecera medía 554 px en un móvil de 390. */
+@media (max-width: 900px) {
+  .topbar { gap: 10px; padding: 0 14px; }
+  .topbar__menu { display: flex; }
+}
+@media (max-width: 720px) {
+  .topbar__search, .topbar__divider, .topbar__home-text, .topbar__identity, .topbar__chevron { display: none; }
+  .topbar__sub { display: none; }
+  .topbar__profile-btn { padding: 3px; }
+}
 
 .topbar__profile { position: relative; }
 .topbar__profile-btn {
@@ -122,9 +160,10 @@ const usuario = computed(() => ({
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
 }
 .topbar__identity { line-height: 1.2; text-align: left; }
-.topbar__identity-name { display: block; font-size: 12.5px; font-weight: 600; color: #fff; }
-.topbar__identity-role { display: block; font-size: 10.5px; color: #8FA3B2; }
-.topbar__chevron { color: #8FA3B2; font-size: 10px; margin: 0 4px; }
+.topbar__identity-name { display: block; font-size: 13px; font-weight: 600; color: #fff; }
+.topbar__identity-role { display: block; font-size: 12px; color: #8FA3B2; }
+.topbar__chevron { color: #8FA3B2; font-size: 16px; margin: 0 4px; transform: rotate(90deg); transition: transform .15s; }
+.topbar__chevron.is-open { transform: rotate(-90deg); }
 
 .menu {
   position: absolute; top: calc(100% + 8px); right: 0; width: 248px; z-index: 70;
@@ -139,15 +178,14 @@ const usuario = computed(() => ({
 }
 .menu__id { line-height: 1.3; min-width: 0; }
 .menu__id-name { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
-.menu__id-mail { display: block; font-size: 11.5px; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu__id-mail { display: block; font-size: 12px; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .menu__group { padding: 6px; }
 .menu__group--top { border-top: 1px solid var(--border-3); }
 .menu__item {
   width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px;
   border: none; background: transparent; border-radius: var(--r-sm);
-  font-family: inherit; font-size: 13.5px; color: #374151; text-align: left; cursor: pointer;
+  font-family: inherit; font-size: 14px; color: #374151; text-align: left; cursor: pointer;
 }
-.menu__item span { width: 16px; text-align: center; }
 .menu__item:hover { background: #F3F4F6; }
 .menu__item--danger { color: #B91C1C; font-weight: 600; }
 .menu__item--danger:hover { background: #FEE2E2; }

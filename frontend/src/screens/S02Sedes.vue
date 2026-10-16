@@ -6,6 +6,7 @@ import { usaCohorte } from '@/composables/usaCohorte'
 import ModuleStepper from '@/components/ModuleStepper.vue'
 import CohorteContext from '@/components/CohorteContext.vue'
 import AvisoError from '@/components/AvisoError.vue'
+import Icono from '@/components/Icono.vue'
 
 const { state } = usePadep()
 const { error, aviso, ocupado, carga, agregaSede, quitaSede } = usaCohorte()
@@ -92,7 +93,7 @@ async function agrega() {
             <tbody>
               <tr v-if="state.sedes.length === 0">
                 <td colspan="4" class="empty">
-                  <div class="empty-state__icon" aria-hidden="true">📍</div>
+                  <div class="empty-state__icon"><Icono nombre="lugar" /></div>
                   <p class="empty-state__title">Aún no hay sedes agregadas</p>
                   <p class="empty-state__hint">Usa el formulario de arriba para agregar la primera sede de esta cohorte.</p>
                 </td>
@@ -120,8 +121,8 @@ async function agrega() {
 <style scoped>
 .picker { padding: 22px; margin-bottom: 22px; }
 .picker .grid-auto { margin-bottom: 16px; }
-.picker__label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.picker__label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
 .field--tight { margin-bottom: 0; }
-.picker .select, .picker .input { border-radius: 10px; padding: 9px 11px; font-size: 13.5px; }
+.picker .select, .picker .input { border-radius: 10px; padding: 9px 11px; font-size: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>

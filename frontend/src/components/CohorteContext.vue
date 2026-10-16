@@ -1,29 +1,41 @@
 <script setup>
 import { computed } from 'vue'
-import { usePadep, NAV } from '@/stores/padep'
+import { usePadep } from '@/stores/padep'
+import { MOD1_STEPS } from '@/data/catalog'
 import { etiquetaCarrera } from '@/data/carreras'
+import Icono from '@/components/Icono.vue'
 
-const { state, checklist, nextStepId, enlacesCount, goTo } = usePadep()
+const { state, checklist, nextStepId, enlacesCount, goTo, navVisible } = usePadep()
 
 // El corte no trae año: sus campos son cohorte, carrera, trimestre y corte. El
 // año vive en `anio_pago`, que solo se sabe después de cargar a la base, así
 // que aquí se enseña el trimestre, que sí viene siempre.
 
-// «Continuar» es la pantalla siguiente, no el primer paso pendiente: ese
-// podía ser la pantalla actual y el botón no hacía nada. Lo pendiente lo dice
-// el checklist; en la última pantalla, en su lugar, una línea de estado.
-const pantallas = NAV[0].screens
-const siguiente = computed(() => pantallas.find(s => s.id === state.active + 1))
+// «Continuar» es el paso siguiente del asistente (Cohorte → Sedes → Enlaces),
+// no el primer paso pendiente: ese podía ser la pantalla actual y el botón no
+// hacía nada. Antes salía de la lista del menú, y desde Enlaces mandaba al
+// Catálogo de Carreras, que no es un paso. Después de Enlaces viene Extracción,
+// si la sesión puede verla.
+const puedeExtraccion = computed(() => navVisible.value.some(m => m.screens.some(s => s.id === 15)))
+const siguiente = computed(() => {
+  const paso = MOD1_STEPS.find(s => s.id === state.active + 1)
+  if (paso) return { id: paso.id, title: { 2: 'Sedes y Centros Educativos', 3: 'Asignación de Enlaces' }[paso.id] ?? paso.label }
+  return null
+})
+const sinEnlace = computed(() => state.sedes.length - enlacesCount.value)
 const estado = computed(() =>
   nextStepId.value === null ? 'Módulo completo'
-    : nextStepId.value === 3 ? `Faltan ${state.sedes.length - enlacesCount.value} sedes sin enlace`
+    : nextStepId.value === 3 ? `${sinEnlace.value} ${sinEnlace.value === 1 ? 'sede' : 'sedes'} sin enlace`
       : `Pendiente: ${checklist.value[nextStepId.value - 1].label.toLowerCase()}`)
 </script>
 
 <template>
   <div class="stack">
     <section class="card card--flat ctx">
-      <p class="ctx__eyebrow">Resumen de cohorte</p>
+      <!-- Es el corte EN USO (el marcado en Alta de Cohorte), no lo que esté
+           escrito en el formulario de alta nueva: con «Resumen de cohorte» se
+           leía como el resumen del formulario y el trimestre no cuadraba. -->
+      <p class="ctx__eyebrow">Corte en uso</p>
       <p class="ctx__codigo mono">
         {{ state.cohorte.codigo ? `Cohorte ${state.cohorte.codigo}` : 'Sin alta' }}
       </p>
@@ -33,7 +45,8 @@ const estado = computed(() =>
           <dt>Trimestre</dt><dd>{{ state.cohorte.trimestre }}</dd>
         </template>
         <dt>Sedes</dt><dd>{{ state.sedes.length }}</dd>
-        <dt>Enlaces asignados</dt><dd>{{ enlacesCount }}</dd>
+        <dt>Enlaces asignados</dt>
+        <dd>{{ state.sedes.length ? `${enlacesCount} de ${state.sedes.length}` : enlacesCount }}</dd>
       </dl>
     </section>
 
@@ -41,8 +54,17 @@ const estado = computed(() =>
       <p class="ctx__eyebrow ctx__eyebrow--muted">Progreso del módulo</p>
       <ul class="checklist">
         <li v-for="item in checklist" :key="item.label" class="checklist__item">
-          <span class="checklist__dot" :class="{ 'is-done': item.done }">{{ item.done ? '✓' : '' }}</span>
-          <span class="checklist__label" :class="{ 'is-done': item.done }">{{ item.label }}</span>
+          <span class="checklist__dot" :class="{ 'is-done': item.done }">
+            <Icono v-if="item.done" nombre="check" :tam="12" />
+          </span>
+          <span class="checklist__label" :class="{ 'is-done': item.done }">
+            {{ item.label }}
+            <!-- Mismo número que arriba: «1» arriba y el paso sin marcar abajo
+                 parecían contradecirse. Se marca cuando TODAS tienen enlace. -->
+            <span v-if="item.label === 'Enlaces asignados' && state.sedes.length && !item.done" class="checklist__cuenta">
+              ({{ enlacesCount }} de {{ state.sedes.length }})
+            </span>
+          </span>
         </li>
       </ul>
     </section>
@@ -50,7 +72,12 @@ const estado = computed(() =>
     <button v-if="siguiente" class="btn btn--primary ctx__next" @click="goTo(siguiente.id)">
       Continuar: {{ siguiente.title }} →
     </button>
-    <p v-else class="ctx__estado" :class="{ 'is-done': nextStepId === null }">{{ estado }}</p>
+    <template v-else>
+      <p class="ctx__estado" :class="{ 'is-done': nextStepId === null }">{{ estado }}</p>
+      <button v-if="puedeExtraccion" class="btn btn--outline ctx__next" @click="goTo(15)">
+        Ir a Extracción de Documentos →
+      </button>
+    </template>
   </div>
 </template>
 
@@ -58,7 +85,7 @@ const estado = computed(() =>
 .ctx { padding: 18px; }
 .ctx:first-child { background: var(--blue-bg); border-color: var(--border-3); }
 .ctx__eyebrow {
-  margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: #1E40AF;
 }
 .ctx__eyebrow--muted { color: var(--muted-2); margin-bottom: 14px; }
@@ -73,10 +100,11 @@ const estado = computed(() =>
 .checklist__dot {
   width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  background: #fff; border: 1.5px solid var(--border-2); color: #fff; font-size: 10px;
+  background: #fff; border: 1.5px solid var(--border-2); color: #fff; font-size: 12px;
 }
 .checklist__dot.is-done { background: var(--success); border: none; }
-.checklist__label { font-size: 13px; color: #8C9895; }
+.checklist__label { font-size: 13px; color: var(--muted); }
+.checklist__cuenta { font-weight: 400; white-space: nowrap; }
 .checklist__label.is-done { color: var(--text); font-weight: 600; }
 
 /* `.btn` es nowrap con alto fijo, y «Continuar: Asignación de Enlaces DIDEDUC»

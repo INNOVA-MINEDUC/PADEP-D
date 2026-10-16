@@ -29,9 +29,16 @@ const filas = computed(() => inscritos.value.map((d, i) => ({
       Importar la nómina reportada para compararla contra la nómina vigente y detectar posibles retiros.
     </p>
 
+    <!-- Antes era solo la zona de soltar archivo, sin decir qué pasa después. -->
+    <ol v-if="!state.s11Uploaded" class="como">
+      <li><strong>Sube la nómina reportada</strong> (Excel o PDF) del pago que quieres revisar.</li>
+      <li><strong>Se compara con la nómina vigente</strong> de la cohorte, docente por docente.</li>
+      <li><strong>Revisa los ausentes</strong>: quien estaba y ya no aparece sale resaltado, y puedes marcarlo para revisión.</li>
+    </ol>
+
     <FileDropzone
       v-if="!state.s11Uploaded"
-      title="Arrastre y suelte la nómina reportada aquí"
+      title="Arrastra y suelta aquí la nómina reportada"
       @select="setUploaded('s11Uploaded', true)" />
 
     <template v-else>
@@ -71,6 +78,12 @@ const filas = computed(() => inscritos.value.map((d, i) => ({
 <style scoped>
 .table-wrap { margin-bottom: 16px; }
 .btn--bordered { background: #fff; border: 1px solid #D1D5DB; }
-.hint { font-size: 12.5px; color: var(--muted-2); }
+.hint { font-size: 13px; color: var(--muted-2); }
+.como {
+  margin: 0 0 20px; padding: 16px 16px 16px 36px; max-width: 640px;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--r-md);
+  font-size: 13px; line-height: 1.6; color: var(--text);
+}
+.como li + li { margin-top: 6px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
