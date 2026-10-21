@@ -119,6 +119,26 @@ export async function abreEnPestana(ruta) {
   }
 }
 
+/**
+ * Un POST con cuerpo JSON cuya respuesta es un archivo (los reportes). El
+ * nombre lo pone la API en Content-Disposition; `porDefecto` por si no llega.
+ */
+export async function descargaPost(ruta, cuerpo, porDefecto) {
+  const r = await crudo(ruta, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo),
+  })
+  if (!r.ok) throw await fallo(r)
+  const nombre = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || porDefecto
+  const url = URL.createObjectURL(await r.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nombre
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
+}
+
 export async function descarga(ruta, nombre) {
   const url = await comoBlob(ruta)
   const a = document.createElement('a')

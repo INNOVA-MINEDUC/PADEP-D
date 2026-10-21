@@ -19,7 +19,7 @@ import S10SeguimientoEstatus from '@/screens/S10SeguimientoEstatus.vue'
 import S11ComparacionNominas from '@/screens/S11ComparacionNominas.vue'
 import S12FichaAcademica from '@/screens/S12FichaAcademica.vue'
 import S13ConstructorReportes from '@/screens/S13ConstructorReportes.vue'
-import S14VistaReporte from '@/screens/S14VistaReporte.vue'
+import S14ReportesGuardados from '@/screens/S14ReportesGuardados.vue'
 import S15Extraccion from '@/screens/S15Extraccion.vue'
 import S16Curador from '@/screens/S16Curador.vue'
 import S17Usuarios from '@/screens/S17Usuarios.vue'
@@ -49,7 +49,7 @@ const SCREENS = {
   11: S11ComparacionNominas,
   12: S12FichaAcademica,
   13: S13ConstructorReportes,
-  14: S14VistaReporte,
+  14: S14ReportesGuardados,
   15: S15Extraccion,
   16: S16Curador,
   17: S17Usuarios,

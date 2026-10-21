@@ -3598,6 +3598,370 @@
           }
         }
       }
+    },
+    "/reportes/catalogo": {
+      "get": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Qué se puede pedir en un reporte",
+        "description": "Las fuentes (docentes, notas, asistencia), sus campos con tipo y rol\n(`dim`, `valor`, `medida`) y los operadores de cada tipo. **Sin el permiso\n`reportes.datos_personales` los campos personales no aparecen.**",
+        "operationId": "ver_catalogo_reportes_catalogo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ver Catalogo Reportes Catalogo Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
+    },
+    "/reportes/valores": {
+      "get": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Los valores de un campo, para un filtro",
+        "description": "Hasta 300 valores distintos de un campo de texto, ordenados; con `q`,\nsolo los que lo contienen.",
+        "operationId": "ver_valores_reportes_valores_get",
+        "parameters": [
+          {
+            "name": "fuente",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Fuente"
+            }
+          },
+          {
+            "name": "campo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campo"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {},
+                  "title": "Response Ver Valores Reportes Valores Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "pide un dato personal sin el permiso reportes.datos_personales, o toca una plantilla ajena"
+          },
+          "422": {
+            "description": "la especificación no vale: el `detail` dice qué campo, operador o valor; también si tarda más de 15 s"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
+    },
+    "/reportes/consulta": {
+      "post": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "La vista previa de un reporte, paginada",
+        "description": "Devuelve `columnas` y `filas` (listas, en el orden de las columnas),\n`total` y `paginas`. Solo lectura y como mucho 15 s por consulta.",
+        "operationId": "consultar_reportes_consulta_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Pedido"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Consultar Reportes Consulta Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "pide un dato personal sin el permiso reportes.datos_personales, o toca una plantilla ajena"
+          },
+          "422": {
+            "description": "la especificación no vale: el `detail` dice qué campo, operador o valor; también si tarda más de 15 s"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
+    },
+    "/reportes/exportar": {
+      "post": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "El reporte entero en CSV o Excel",
+        "description": "Hasta 50 000 filas. El Excel lleva una hoja «Criterios» con la fuente,\nlos filtros, quién y cuándo. Cada exportación queda en la bitácora antes\nde entregarse; si no se puede anotar, no se exporta (503).",
+        "operationId": "exportar_reportes_exportar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Exportacion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "pide un dato personal sin el permiso reportes.datos_personales, o toca una plantilla ajena"
+          },
+          "422": {
+            "description": "la especificación no vale: el `detail` dice qué campo, operador o valor; también si tarda más de 15 s"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
+    },
+    "/reportes/guardados": {
+      "get": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Las plantillas propias y las compartidas",
+        "description": "Una plantilla que pide datos que esta sesión no puede ver sale con\n`bloqueada` y el motivo.",
+        "operationId": "listar_guardados_reportes_guardados_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {},
+                  "type": "array",
+                  "title": "Response Listar Guardados Reportes Guardados Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Guarda una plantilla",
+        "operationId": "crear_guardado_reportes_guardados_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Plantilla"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Crear Guardado Reportes Guardados Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "pide un dato personal sin el permiso reportes.datos_personales, o toca una plantilla ajena"
+          },
+          "422": {
+            "description": "la especificación no vale: el `detail` dice qué campo, operador o valor; también si tarda más de 15 s"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
+    },
+    "/reportes/guardados/{id_reporte}": {
+      "put": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Cambia una plantilla propia",
+        "operationId": "editar_guardado_reportes_guardados__id_reporte__put",
+        "parameters": [
+          {
+            "name": "id_reporte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Reporte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Plantilla"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Editar Guardado Reportes Guardados  Id Reporte  Put"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "pide un dato personal sin el permiso reportes.datos_personales, o toca una plantilla ajena"
+          },
+          "404": {
+            "description": "no existe"
+          },
+          "422": {
+            "description": "la especificación no vale: el `detail` dice qué campo, operador o valor; también si tarda más de 15 s"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Borra una plantilla propia",
+        "operationId": "borrar_guardado_reportes_guardados__id_reporte__delete",
+        "parameters": [
+          {
+            "name": "id_reporte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id Reporte"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Borrar Guardado Reportes Guardados  Id Reporte  Delete"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "pide un dato personal sin el permiso reportes.datos_personales, o toca una plantilla ajena"
+          },
+          "404": {
+            "description": "no existe"
+          },
+          "422": {
+            "description": "la especificación no vale: el `detail` dice qué campo, operador o valor; también si tarda más de 15 s"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4170,6 +4534,25 @@
         ],
         "title": "Estatus"
       },
+      "Exportacion": {
+        "properties": {
+          "especificacion": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Especificacion"
+          },
+          "formato": {
+            "type": "string",
+            "title": "Formato",
+            "default": "xlsx"
+          }
+        },
+        "type": "object",
+        "required": [
+          "especificacion"
+        ],
+        "title": "Exportacion"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4224,6 +4607,31 @@
         ],
         "title": "Password"
       },
+      "Pedido": {
+        "properties": {
+          "especificacion": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Especificacion"
+          },
+          "pagina": {
+            "type": "integer",
+            "title": "Pagina",
+            "default": 1
+          },
+          "por_pagina": {
+            "type": "integer",
+            "title": "Por Pagina",
+            "default": 50
+          }
+        },
+        "type": "object",
+        "required": [
+          "especificacion"
+        ],
+        "title": "Pedido",
+        "description": "`especificacion`: {fuente, modo, columnas | agrupar + medidas, filtros, orden}."
+      },
       "Permisos": {
         "properties": {
           "permisos": {
@@ -4239,6 +4647,35 @@
           "permisos"
         ],
         "title": "Permisos"
+      },
+      "Plantilla": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "descripcion": {
+            "type": "string",
+            "title": "Descripcion",
+            "default": ""
+          },
+          "especificacion": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Especificacion"
+          },
+          "compartido": {
+            "type": "boolean",
+            "title": "Compartido",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "especificacion"
+        ],
+        "title": "Plantilla"
       },
       "ValidationError": {
         "properties": {

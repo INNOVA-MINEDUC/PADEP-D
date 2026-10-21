@@ -1,4 +1,4 @@
-import { pide, pideTexto, encola, abreEnPestana, descarga } from './cliente'
+import { pide, pideTexto, encola, abreEnPestana, descarga, descargaPost } from './cliente'
 
 /**
  * API de PADEP (FastAPI, PycharmProjects/PADEP/api). Ya no hay Express en
@@ -10,6 +10,10 @@ import { pide, pideTexto, encola, abreEnPestana, descarga } from './cliente'
  * `/cortes`, el navegador pide `/api/cortes`.
  */
 const RAIZ = '/api'
+
+const json = (cuerpo, metodo = 'POST') => ({
+  method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo),
+})
 
 const forma = (campos) => {
   const f = new FormData()
@@ -123,6 +127,23 @@ export const api = {
   // La excepcion: el estatus academico (activo, retirado, graduado) no esta en
   // ningun papel y se escribe aqui. Solo añade al historial, no lo edita.
   // `campos`: cohorte, carrera, estatus, fecha, motivo, referencia, acta.
+  // Reportes dinamicos (api/reportes.py). Se manda una ESPECIFICACION, nunca
+  // SQL: {fuente, modo, columnas | agrupar + medidas, filtros, orden}. El
+  // catalogo dice que se puede pedir; sin `reportes.datos_personales` no trae
+  // nombre, CUI, DPI ni partida, y pedirlos es un 403.
+  catalogoReportes: () => pide(`${RAIZ}/reportes/catalogo`),
+  valoresReporte: (fuente, campo, q = '') =>
+    pide(`${RAIZ}/reportes/valores${consulta({ fuente, campo, q })}`),
+  consultaReporte: (especificacion, pagina = 1, porPagina = 50) =>
+    pide(`${RAIZ}/reportes/consulta`, json({ especificacion, pagina, por_pagina: porPagina })),
+  // Queda en la bitacora antes de bajar; 422 si pasa de 50 000 filas.
+  exportaReporte: (especificacion, formato) =>
+    descargaPost(`${RAIZ}/reportes/exportar`, { especificacion, formato }, `reporte.${formato}`),
+  reportesGuardados: () => pide(`${RAIZ}/reportes/guardados`),
+  guardaReporte: (plantilla) => pide(`${RAIZ}/reportes/guardados`, json(plantilla)),
+  editaReporte: (id, plantilla) => pide(`${RAIZ}/reportes/guardados/${id}`, json(plantilla, 'PUT')),
+  borraReporte: (id) => pide(`${RAIZ}/reportes/guardados/${id}`, { method: 'DELETE' }),
+
   // Los cambios registrados, del mas reciente al mas viejo, con `resumen` (las
   // inscripciones por estatus vigente). Filtros: cohorte, carrera, estatus,
   // desde, hasta (AAAA-MM-DD), pagina, por_pagina.

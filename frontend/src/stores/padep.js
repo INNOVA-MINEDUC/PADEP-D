@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue'
-import { NAV, SEED } from '@/data/catalog'
+import { NAV } from '@/data/catalog'
 import { entra, yo, sal, cambiaPassword } from '@/api/auth'
 import { api } from '@/api/extraccion'
 import { guardaToken, hayToken, cuandoExpire } from '@/api/cliente'
@@ -13,6 +13,15 @@ import { fijaCatalogo } from '@/data/carreras'
  * Es un módulo singleton; si el proyecto crece, migrar a Pinia es directo
  * (mismo shape de state/getters/actions).
  */
+
+/** Un reporte en blanco: resumen de notas, que es lo que más se pide. */
+export function reporteVacio() {
+  return {
+    fuente: 'notas', modo: 'resumen', columnas: [], agrupar: [], medidas: [], filtros: [], orden: [],
+    // solo la fuente docentes: limita a esos trimestres las notas y la asistencia
+    trimestres: [],
+  }
+}
 
 const state = reactive({
   // --- Sesión ---
@@ -71,7 +80,6 @@ const state = reactive({
   s9Estatus: '',
 
   // --- Seguimiento ---
-  notasOverrides: {},
   // La ficha (S12) abierta: código PADEP, o null si se llegó sin elegir a nadie.
   fichaCodigo: null,
   // Con qué estatus abrir el formulario: la comparación de nóminas abre la
@@ -87,13 +95,14 @@ const state = reactive({
   s10Carrera: '',
   s10Desde: '',
   s10Hasta: '',
-  // Solo para las maquetas de reportes (S13, S14), que aún pintan el SEED.
-  statusOverrides: {},
 
-  // --- Reportes ---
-  reportVars: ['Sede', 'Estatus', 'Notas'],
-  s13Dep: 'Todos',
-  s13Estatus: 'Todos',
+  // --- Reportes (S13, S14) ---
+  // La especificación que se está armando: es lo que se manda a la API, tal
+  // cual (`api/reportes.py`). Vive aquí para sobrevivir a la navegación.
+  reporte: reporteVacio(),
+  // La plantilla de la que salió, si se abrió una guardada: {id_reporte,
+  // nombre, descripcion, compartido, editable}. null = reporte nuevo.
+  reportePlantilla: null,
 
   // --- Overlays ---
   // Un solo diálogo para todo lo que pide confirmar (quitar sede, reemplazar
@@ -134,23 +143,6 @@ const currentModuleIndex = computed(() => navVisible.value.findIndex(m => m.id =
 const crumbScreen = computed(
   () => currentModule.value.screens.find(s => s.id === state.active)?.title ?? ''
 )
-
-/** Docente con los overrides de notas/estatus aplicados. */
-function getDocente(id) {
-  const base = SEED.find(d => d.id === id) ?? SEED[0]
-  const notas = state.notasOverrides[base.id] ?? {}
-  return {
-    ...base,
-    estatus: state.statusOverrides[base.id] ?? base.estatus,
-    notas: notas.notas ?? base.notas,
-    asistencia: notas.asistencia ?? base.asistencia,
-  }
-}
-
-/** Todos los docentes con overrides, en orden de catálogo. */
-const docentes = computed(() => SEED.map(d => getDocente(d.id)))
-
-const inscritos = computed(() => docentes.value.filter(d => d.inscripcionFinal))
 
 const enlacesCount = computed(() => state.sedes.filter(s => s.enlace).length)
 
@@ -361,7 +353,6 @@ const actions = {
   },
 
   // --- Docentes ---
-  getDocente,
   /**
    * Abre la ficha (S12). `estatus` deja el formulario ya preparado; `lista`,
    * los códigos de la tabla de la que se viene, en su orden.
@@ -379,10 +370,6 @@ const actions = {
     state.fichaCodigo = codigo
   },
   volverDeFicha() { actions.goTo(state.fichaOrigen ?? 9) },
-  setNota(id, campo, valor) {
-    const actual = state.notasOverrides[id] ?? {}
-    state.notasOverrides[id] = { ...actual, [campo]: valor }
-  },
   clearFiltrosDocentes() {
     state.s9Query = ''
     state.s9Dep = null
@@ -393,13 +380,20 @@ const actions = {
   },
 
   // --- Reportes ---
-  toggleReportVar(v) {
-    state.reportVars = state.reportVars.includes(v)
-      ? state.reportVars.filter(x => x !== v)
-      : [...state.reportVars, v]
+  nuevoReporte() {
+    state.reporte = reporteVacio()
+    state.reportePlantilla = null
   },
-  clearReportVars()    { state.reportVars = [] },
-  clearReportFiltros() { state.s13Dep = 'Todos'; state.s13Estatus = 'Todos' },
+  /** Abre una plantilla guardada en el constructor. */
+  abreReporte(g) {
+    // Copia vía JSON: structuredClone no admite el proxy reactivo de Vue.
+    state.reporte = { ...reporteVacio(), ...JSON.parse(JSON.stringify(g.especificacion)) }
+    state.reportePlantilla = {
+      id_reporte: g.id_reporte, nombre: g.nombre, descripcion: g.descripcion ?? '',
+      compartido: !!g.compartido, editable: !!g.editable,
+    }
+    actions.goTo(13)
+  },
 }
 
 // Un 401 en cualquier petición saca al usuario: el token caducó a media sesión
@@ -415,8 +409,6 @@ export function usePadep() {
     navVisible,
     puede,
     crumbScreen,
-    docentes,
-    inscritos,
     enlacesCount,
     checklist,
     nextStepId,
@@ -425,4 +417,4 @@ export function usePadep() {
   }
 }
 
-export { NAV, SEED }
+export { NAV }
