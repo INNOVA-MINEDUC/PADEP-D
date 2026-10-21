@@ -19,7 +19,10 @@ const {
   lista: cortes, elegido, corte, puedeEntregar, puedeCargar, extraidos,
   carga: cargaCortes, elige,
 } = usaCortes()
-const { subiendo, avance, error: errorSubida, envia } = usaSubida(elegido, trozo)
+const { subiendo, avance, error: errorSubida, pideForzar, envia } = usaSubida(elegido, trozo)
+// Re-extraer un corte con trabajo a mano: solo se ofrece tras el 409 que lo
+// explica, y hay que marcarlo a propósito.
+const forzar = ref(false)
 const {
   lista: trabajos, registroDe, registro, soloDelCorte, filtrando, bloqueadaPorOtro,
   refresca, verRegistro, vivo,
@@ -160,7 +163,8 @@ async function extrae() {
     error.value = ranuras.value > 1 ? 'Elige al menos un listado.' : 'Elige un PDF.'
     return
   }
-  if (await envia(elegidos, tipo.value)) {
+  if (await envia(elegidos, tipo.value, pideForzar.value && forzar.value)) {
+    forzar.value = false
     archivos.value = []
     document.querySelectorAll('.ranura input').forEach((i) => { i.value = '' })
   }
@@ -337,6 +341,12 @@ onMounted(async () => {
 
           <p class="nota">{{ pista }}</p>
           <AvisoError :mensaje="errorSubida" />
+          <label v-if="pideForzar" class="forzar">
+            <input v-model="forzar" type="checkbox">
+            Sí, re-extraer. Lo escrito a mano se recoloca por persona al rehacer la
+            entrega; lo que no se pueda ubicar con certeza no se aplica y aparece en
+            «Completar a mano» para revisarlo. La lectura anterior queda guardada.
+          </label>
           <BarraAvance v-if="subiendo" :valor="avance" />
         </form>
       </div>
@@ -644,4 +654,5 @@ onMounted(async () => {
   padding: 12px; margin-top: 16px; max-height: 16rem; overflow: auto;
   font-family: var(--mono); font-size: 12px; white-space: pre-wrap; color: var(--muted);
 }
+.forzar { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; font-size: 13px; color: var(--text); }
 </style>

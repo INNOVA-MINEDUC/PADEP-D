@@ -244,6 +244,7 @@ POST /cortes/{id}/entrega              curar + entrega + reaplicar + auditar (20
 GET  /cortes/{id}/pendientes           lo que queda por completar a mano
 PUT  /cortes/{id}/correcciones         guarda UNA celda
 PUT  /cortes/{id}/altas                guarda UNA casilla de una fila no extraída
+PUT  /cortes/{id}/vinculos             ata una fila extraída con el nombre ilegible a su persona
 POST /cortes/{id}/correcciones/aplicar vuelca lo escrito sobre la entrega (202)
 POST /cortes/{id}/carga                a MySQL (202)
 GET  /cortes/{id}/carga                qué hay de ese corte en la base
@@ -260,15 +261,80 @@ fallo.
 | Campo | Qué es |
 |---|---|
 | `tareas` | celdas a corregir; cada una con `campos` → `casillas` (`filas`, `escrito`) |
-| `sin_registro` | personas de la nómina sin ninguna fila: se da de **alta**, no se corrige |
+| `sin_registro` | personas de la nómina sin ninguna fila: se da de **alta** o se **vincula**, no se corrige |
 | `documentos` | para construir los enlaces al PDF |
-| `correcciones`, `altas` | cuántas van escritas |
+| `correcciones`, `altas`, `vinculos` | cuántas van escritas |
 | `sin_completar`, `sin_registro_abiertos` | lo que falta |
 | `escrito_sin_volcar` | hay correcciones sin aplicar a la entrega |
-| `altas_sin_reflejar` | hay altas: aplicar **rehace la entrega entera** (minutos) |
+| `altas_sin_reflejar` | hay altas o vínculos: aplicar **rehace la entrega entera** (minutos) |
 
-Botón «aplicar»: habilitado si `correcciones` o si hay altas. Cuando hay altas
-el `title` debe avisar de que tarda, porque la entrega se rehace completa.
+Botón «aplicar»: habilitado si `correcciones` o si `altas_sin_reflejar`. En ese
+caso el `title` debe avisar de que tarda, porque la entrega se rehace completa.
+
+Cada persona de `sin_registro` trae además:
+
+| Campo | Qué es |
+|---|---|
+| `campos` | el formulario del alta; vacío si ese documento no admite altas (`motivo` dice por qué) |
+| `posible`, `que_hacer` | la fila que sobra en su página y se le parece, en texto |
+| `vinculo` | `{archivo, fila}` de esa fila, o `null` si no sobra ninguna |
+| `vinculada` | ya está vinculada a esta persona |
+
+**Vincular** es para cuando la fila sí se extrajo pero con el nombre destrozado
+(«Banco Sonscts Cativerinre Rashell» por «Blanco Sanabria Catherine Rashell»).
+Se enseña un botón si `vinculo` no es `null`: «es su fila: vincularla», que
+manda `PUT /cortes/{id}/vinculos` con `archivo` y `fila` de `vinculo` y el
+`carne` de la persona. Con `vinculada`, el botón pasa a «deshacer el vínculo» y
+manda `carne` vacío. Una persona vinculada cuenta como resuelta: no se le pide
+el alta. Es lo único que resuelve a alguien en **resultados**, que no admite
+altas.
+
+Comprobar en el PDF antes de vincular: el porcentaje es una pista, no una
+prueba. La API rechaza con 422 un carné fuera de la nómina, una fila que no
+existe o una fila que en el papel trae el carné de **otra** persona.
+
+### Comparación de nóminas
+
+```
+GET /cortes/{id}/comparacion?contra={otro}   bajas, altas y cambios por carné
+PUT /cortes/{id}/comparacion/revision        marca o desmarca una diferencia
+```
+
+Sin `contra`, contra el corte anterior de la misma cohorte y carrera (409 si no
+hay; 422 si `contra` es de otra carrera). Se calcula del disco, no hace falta
+subir nada. Devuelve `antes` y `ahora` (`id`, `nomina`, `personas`),
+`resumen` y tres listas; cada persona trae `carne`, `nombre`, `departamento`,
+`municipio` y `marca` (`{nota, usuario, cuando}` o `null`):
+
+| Lista | Además |
+|---|---|
+| `bajas` | `en_documentos_ahora` (si no está vacío, **no se retiró**: falta en la nómina) e `historial` (`asistencia`, `dictamen`, `notas` del corte anterior) |
+| `altas` | `en_documentos_antes`: ya salía en los documentos del pago anterior |
+| `cambios` | `campos`: `[{campo, etiqueta, antes, ahora}]` |
+
+`marcas_disponible: false` (con `marcas_motivo`) si MySQL no responde o falta la
+migración v4.6: se pinta la comparación y no se ofrece marcar.
+
+El `PUT` lleva `carne`, `tipo` (`baja`/`alta`/`cambio`), `contra` —**el
+`antes.id` que devolvió la comparación**, no lo elegido en pantalla, para que la
+marca quede atada a ese corte— y `marcada` **`true` o `false` explícito**: un
+campo vacío cuenta como ausente y la API marcaría. `nota` opcional; volver a
+marcar con otra nota la reemplaza. Permiso `incidencias.resolver`.
+
+### Re-extraer un corte con trabajo a mano
+
+`POST .../extracciones`, `.../extracciones/parte` (en el primer trozo) y
+`.../extracciones/ensamblar` devuelven **409** si el corte ya tiene correcciones,
+altas o vínculos, con un mensaje que empieza explicándolo («este corte ya tiene
+trabajo a mano…»). Las tres aceptan `forzar=true` para hacerlo igual. Ofrecerlo
+**solo después de ese 409**, con una casilla que haya que marcar a propósito; y
+mandar `forzar` explícito (`true`/`false`) en los trozos y en el ensamblado.
+
+Tras re-extraer y rehacer la entrega, `/pendientes` trae `sin_ubicar`: las
+correcciones que no se pudieron llevar con certeza a su persona y **no se
+aplicaron**. Cada una con `ARCHIVO`, `FILA`, `CAMPO`, `VALOR`, `PAGINA` y
+`MOTIVO`. Se descarta con el mismo `PUT /correcciones` y valor vacío en su
+`FILA`.
 
 ### Ver la página del PDF
 
@@ -329,6 +395,11 @@ Las correcciones se direccionan por `archivo` + `filas` + `campo`. Las altas por
 que apuntar, y el carné de la nómina no se mueve. Un alta equivocada se **anula**
 (campo `ANULADA`), no se borra: quitar la línea correría las filas de detrás y
 las correcciones caerían sobre la fila equivocada.
+
+Los vínculos van por `archivo` + `fila`, y esa `fila` **no** es la de las
+correcciones: es la posición en `datos/`, no en la entrega, que pierde filas por
+el camino. Úsala tal como llega en `vinculo.fila`, sin calcularla. Un vínculo sí
+se borra (carné vacío): no añade filas, así que quitarlo no mueve nada.
 
 ### 3. No enlazar al PDF entero con `#page=N`
 

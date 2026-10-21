@@ -802,6 +802,7 @@
           "cortes"
         ],
         "summary": "Sube un PDF al corte y encola su extracción",
+        "description": "`forzar`: re-extraer aunque el corte tenga correcciones, altas o\nvínculos (409 sin él). Lo escrito a mano se recoloca por persona al rehacer\nla entrega; lo que no se pueda ubicar con certeza no se aplica y se enseña\nen `GET /cortes/{id}/pendientes` → `sin_ubicar`.",
         "operationId": "crear_cortes__id_corte__extracciones_post",
         "parameters": [
           {
@@ -1197,6 +1198,128 @@
         }
       }
     },
+    "/cortes/{id_corte}/comparacion": {
+      "get": {
+        "tags": [
+          "cortes"
+        ],
+        "summary": "Bajas, altas y cambios de nómina contra otro corte",
+        "description": "Compara la nómina de este corte con la de `contra` —por defecto, el corte\nanterior de la misma cohorte y carrera—, por carné.\n\nSe calcula del disco cada vez: no hace falta haber cargado ninguno de los\ndos a MySQL. Cada baja trae cómo iba en el corte anterior (`historial`) y\nen qué documentos del nuevo sigue apareciendo (`en_documentos_ahora`): si\nfirma la asistencia del pago nuevo, no se retiró, falta en la nómina.\n\nLas marcas de revisión sí son de la base. Si no responde, la comparación se\nsirve igual con `marcas_disponible: false` y el motivo.",
+        "operationId": "comparar_cortes__id_corte__comparacion_get",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          },
+          {
+            "name": "contra",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Contra"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Comparar Cortes  Id Corte  Comparacion Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cortes/{id_corte}/comparacion/revision": {
+      "put": {
+        "tags": [
+          "cortes"
+        ],
+        "summary": "Marca o desmarca una diferencia de nómina para revisión",
+        "description": "`tipo` es `baja`, `alta` o `cambio`; `marcada=false` la quita. Con\n`false` explícito y no vacío: FastAPI da un campo vacío del formulario por\nausente, y caería en el valor por defecto, que es marcar.\n\nVa a la tabla `RevisionNomina` (migración v4.6): es un juicio de quien\nrevisa, no un dato del papel, así que su hogar es la base y el cargador no\nla toca. Solo se puede marcar lo que la comparación de verdad trae (422 si\nno). 503 si la base no responde.",
+        "operationId": "marcar_revision_cortes__id_corte__comparacion_revision_put",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_marcar_revision_cortes__id_corte__comparacion_revision_put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Marcar Revision Cortes  Id Corte  Comparacion Revision Put"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cortes/{id_corte}/pendientes": {
       "get": {
         "tags": [
@@ -1365,7 +1488,7 @@
           "curación"
         ],
         "summary": "Guarda una casilla de una fila dada de alta a mano",
-        "description": "Para quien está en la nómina y no tiene **ninguna** fila en el documento.\n\nLa llave es el carné, no el número de fila: una persona que el OCR nunca\nextrajo no tiene posición a la que apuntar. Solo se admiten los campos que\nel documento pide (`ALTA_CAMPOS`) y `ANULADA`, que deshace el alta sin\nborrar ninguna línea del CSV.\n\nLo escrito entra en la entrega al **rehacerla**, no al volcar: un alta se\ninyecta antes del cruce con la nómina, que es lo que le pone el nombre y el\nmunicipio y lo que la saca de la lista de sin registro.",
+        "description": "Para quien está en la nómina y no tiene **ninguna** fila en el documento.\n\nLa llave es el carné, no el número de fila: una persona que el OCR nunca\nextrajo no tiene posición a la que apuntar. Solo se admiten los campos que\nel documento pide (`ALTA_CAMPOS`, resueltos contra el CSV del corte) y\n`ANULADA`, que deshace el alta sin borrar ninguna línea del CSV.\n\nLo escrito entra en la entrega al **rehacerla**, no al volcar: un alta se\ninyecta antes del cruce con la nómina, que es lo que le pone el nombre y el\nmunicipio y lo que la saca de la lista de sin registro.",
         "operationId": "dar_de_alta_cortes__id_corte__altas_put",
         "parameters": [
           {
@@ -1420,13 +1543,74 @@
         }
       }
     },
+    "/cortes/{id_corte}/vinculos": {
+      "put": {
+        "tags": [
+          "curación"
+        ],
+        "summary": "Ata una fila extraída con el nombre ilegible a su persona",
+        "description": "Para quien está en la nómina, figura sin registro y **sí** tiene fila:\nla que `sin_registro[].vinculo` propone, con el nombre destrozado por el\nOCR. Un alta no sirve ahí —la fila ya existe— y corregir el nombre\ntampoco: `correcciones.csv` se aplica después del cruce con la nómina.\n\n`fila` es la posición en el CSV de `datos/`, la que trae `vinculo.fila`.\nCarné vacío deshace el vínculo. Entra en la entrega al **rehacerla**, igual\nque un alta: va antes del cruce, que es lo que le pone nombre, municipio y\ncarrera y lo que saca a la persona de la lista de sin registro.",
+        "operationId": "vincular_cortes__id_corte__vinculos_put",
+        "parameters": [
+          {
+            "name": "id_corte",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Corte"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_vincular_cortes__id_corte__vinculos_put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Vincular Cortes  Id Corte  Vinculos Put"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cortes/{id_corte}/correcciones/aplicar": {
       "post": {
         "tags": [
           "curación"
         ],
         "summary": "Vuelca lo escrito a mano sobre la entrega",
-        "description": "Vuelca las correcciones sobre la entrega ya hecha.\n\nSi hay altas escritas después de la última entrega no basta con volcar: se\nrehace la entrega entera, porque un alta entra antes del cruce y la\ncobertura tiene que recalcularse. Se decide aquí y no en la pantalla para\nque valga también desde `/docs`.",
+        "description": "Vuelca las correcciones sobre la entrega ya hecha.\n\nSi hay altas o vínculos escritos después de la última entrega no basta con\nvolcar: se rehace la entrega entera, porque entran antes del cruce y la\ncobertura tiene que recalcularse. Se decide aquí y no en la pantalla para\nque valga también desde `/docs`.",
         "operationId": "aplicar_cortes__id_corte__correcciones_aplicar_post",
         "parameters": [
           {
@@ -3389,6 +3573,11 @@
             },
             "type": "array",
             "title": "Archivos"
+          },
+          "forzar": {
+            "type": "boolean",
+            "title": "Forzar",
+            "default": false
           }
         },
         "type": "object",
@@ -3535,6 +3724,11 @@
             },
             "type": "array",
             "title": "Nombres"
+          },
+          "forzar": {
+            "type": "boolean",
+            "title": "Forzar",
+            "default": false
           }
         },
         "type": "object",
@@ -3544,6 +3738,39 @@
           "nombres"
         ],
         "title": "Body_ensamblar_cortes__id_corte__extracciones_ensamblar_post"
+      },
+      "Body_marcar_revision_cortes__id_corte__comparacion_revision_put": {
+        "properties": {
+          "carne": {
+            "type": "string",
+            "title": "Carne"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "contra": {
+            "type": "string",
+            "title": "Contra",
+            "default": ""
+          },
+          "marcada": {
+            "type": "boolean",
+            "title": "Marcada",
+            "default": true
+          },
+          "nota": {
+            "type": "string",
+            "title": "Nota",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "carne",
+          "tipo"
+        ],
+        "title": "Body_marcar_revision_cortes__id_corte__comparacion_revision_put"
       },
       "Body_subir_nomina_cortes__id_corte__nomina_post": {
         "properties": {
@@ -3577,6 +3804,11 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "Trozo"
+          },
+          "forzar": {
+            "type": "boolean",
+            "title": "Forzar",
+            "default": false
           }
         },
         "type": "object",
@@ -3587,6 +3819,29 @@
           "trozo"
         ],
         "title": "Body_subir_parte_cortes__id_corte__extracciones_parte_post"
+      },
+      "Body_vincular_cortes__id_corte__vinculos_put": {
+        "properties": {
+          "archivo": {
+            "type": "string",
+            "title": "Archivo"
+          },
+          "fila": {
+            "type": "string",
+            "title": "Fila"
+          },
+          "carne": {
+            "type": "string",
+            "title": "Carne",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "archivo",
+          "fila"
+        ],
+        "title": "Body_vincular_cortes__id_corte__vinculos_put"
       },
       "CambioPassword": {
         "properties": {

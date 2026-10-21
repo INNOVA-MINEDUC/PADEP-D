@@ -20,8 +20,27 @@ export function usaCurador(idCorte) {
   // Va aparte del payload para no ensuciar lo que devuelve la API.
   const estadoCelda = ref({})
   const idCelda = (tarea, campo, casilla) => `${tarea.archivo}|${casilla.filas}|${campo.nombre}`
+  const idAlta = (persona, nombreCampo) => `alta|${persona.archivo}|${persona.carne}|${nombreCampo}`
 
+  // Lo tecleado y todavía no confirmado por el backend, por celda. Sin esto se
+  // perdían capturas: Vue reasigna `el.value` de TODO input con `:value` en
+  // cada render, y cualquier acuse ('guardando', 'ok', su borrado a los 2,5 s)
+  // re-renderiza la pantalla. Lo que se estaba escribiendo en la celda
+  // siguiente volvía a su valor guardado sin que saltara `change`, y no se
+  // guardaba nunca. Un fallo hacía lo mismo con lo que no llegó a guardarse.
+  const borrador = ref({})
+  const muestra = (id, guardado) => (id in borrador.value ? borrador.value[id] : guardado)
+  const anota = (id, texto) => { borrador.value[id] = texto }
+  // Solo si no se siguió escribiendo mientras viajaba el PUT: lo nuevo manda.
+  const suelta = (id, valor) => {
+    if (borrador.value[id] === valor) delete borrador.value[id]
+  }
+
+  let corteDelBorrador = null
   async function carga() {
+    // Las llaves no llevan el corte: otro corte con las mismas hojas heredaría
+    // lo tecleado en este.
+    if (idCorte.value !== corteDelBorrador) { borrador.value = {}; corteDelBorrador = idCorte.value }
     if (!idCorte.value) { datos.value = null; return }
     cargando.value = true
     error.value = ''
@@ -43,6 +62,10 @@ export function usaCurador(idCorte) {
   const escrita = x => x.campos.length > 0 && !x.anulada
     && x.campos.every(c => String(c.escrito).trim())
 
+  /** Resuelta: o su fila está escrita, o la fila que sobraba en su página
+   *  quedó vinculada a ella. */
+  const resuelta = x => escrita(x) || !!x.vinculada
+
   // Correcciones: la llave es archivo + filas + campo.
   async function guardaCelda(tarea, campo, casilla, valor) {
     const id = idCelda(tarea, campo, casilla)
@@ -57,6 +80,7 @@ export function usaCurador(idCorte) {
       })
       casilla.escrito = valor.trim()
       datos.value.correcciones = d.correcciones
+      suelta(id, valor)
       marca(id, 'ok')
       return true
     } catch (e) {
@@ -141,6 +165,7 @@ export function usaCurador(idCorte) {
         const c = persona.campos.find(x => x.nombre === nombreCampo)
         if (c) c.escrito = valor.trim()
       }
+      suelta(idAlta(persona, nombreCampo), valor)
       return true
     } catch (e) { error.value = e.message; return false }
   }
@@ -149,6 +174,39 @@ export function usaCurador(idCorte) {
   // filas de detrás y las correcciones caerían sobre la fila equivocada.
   async function anula(persona, si) {
     if (await guardaAlta(persona, 'ANULADA', si ? 'si' : '')) await carga()
+  }
+
+  // Una corrección que la última entrega no supo dónde poner tras re-extraer
+  // (`sin_ubicar`). No se aplicó; se descarta borrándola —valor vacío en su
+  // fila de siempre— y, si hace falta, se escribe otra vez en la tarea que
+  // vuelve a salir.
+  async function descarta(x) {
+    error.value = ''
+    try {
+      await api.corrige(idCorte.value, {
+        archivo: x.ARCHIVO, filas: String(x.FILA), campo: x.CAMPO, valor: '',
+      })
+      datos.value.sin_ubicar = datos.value.sin_ubicar.filter(y => y !== x)
+      return true
+    } catch (e) { error.value = e.message; return false }
+  }
+
+  // Vínculo: la fila SÍ se extrajo, con el nombre ilegible ('Banco Sonscts
+  // Cativerinre Rashell'). Un alta no toca —la fila existe— y en resultados ni
+  // la hay. La llave es `persona.vinculo` tal cual llega: su `fila` es la de
+  // datos/, no la de la entrega, y no se calcula aquí. Carné vacío lo deshace.
+  // Se recarga: cambian `vinculada` y los abiertos, y no hay foco que perder.
+  async function vincula(persona, si) {
+    error.value = ''
+    try {
+      await api.vincula(idCorte.value, {
+        archivo: persona.vinculo.archivo,
+        fila: persona.vinculo.fila,
+        carne: si ? persona.carne : '',
+      })
+      await carga()
+      return true
+    } catch (e) { error.value = e.message; return false }
   }
 
   /**
@@ -180,7 +238,7 @@ export function usaCurador(idCorte) {
   const puedeAplicar = computed(() => !!(datos.value?.correcciones || rehace.value))
   const textoAplicar = computed(() => rehace.value ? 'Rehacer la entrega' : 'Aplicar a la entrega')
   const avisoAplicar = computed(() => {
-    if (rehace.value) return 'Hay filas dadas de alta: la entrega se rehace entera (tarda unos minutos)'
+    if (rehace.value) return 'Hay filas dadas de alta o vinculadas: la entrega se rehace entera (tarda unos minutos)'
     return datos.value?.correcciones ? '' : 'Todavía no has escrito nada'
   })
 
@@ -202,9 +260,10 @@ export function usaCurador(idCorte) {
 
   return {
     datos, error, cargando, carga,
-    hecha, escrita, confirmable, confirma, confirmada, desconfirma,
-    guardaCelda, guardaAlta, anula,
-    estadoCelda, idCelda,
+    hecha, escrita, resuelta, confirmable, confirma, confirmada, desconfirma,
+    guardaCelda, guardaAlta, anula, vincula, descarta,
+    estadoCelda, idCelda, idAlta,
+    muestra, anota,
     tablaDe, camposSueltos,
     puedeAplicar, textoAplicar, avisoAplicar, aplica,
     listas, porcentaje,

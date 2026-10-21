@@ -37,7 +37,22 @@ export const api = {
     pide(`${RAIZ}/cortes/${id}/correcciones`, { method: 'PUT', body: forma(campos) }),
   daDeAlta: (id, campos) =>
     pide(`${RAIZ}/cortes/${id}/altas`, { method: 'PUT', body: forma(campos) }),
+  // `{archivo, fila, carne}`; carne vacio deshace el vinculo. 422 si el carne
+  // no esta en la nomina o la fila es de otra persona.
+  vincula: (id, campos) =>
+    pide(`${RAIZ}/cortes/${id}/vinculos`, { method: 'PUT', body: forma(campos) }),
   aplica: (id) => encola(`${RAIZ}/cortes/${id}/correcciones/aplicar`),
+
+  // Comparacion de nominas: se calcula del disco, sin MySQL. Sin `contra`, el
+  // corte anterior de la misma carrera (409 si no hay). Las marcas si son de la
+  // base: si no responde, `marcas_disponible: false` y la comparacion igual.
+  comparacion: (id, contra = '') =>
+    pide(`${RAIZ}/cortes/${id}/comparacion${contra ? `?contra=${encodeURIComponent(contra)}` : ''}`),
+  // `{carne, tipo: baja|alta|cambio, contra, marcada: 'true'|'false', nota}`.
+  // `marcada` va EXPLICITO: un campo vacio del formulario cuenta como ausente
+  // y la API marcaria en vez de quitar.
+  marcaRevision: (id, campos) =>
+    pide(`${RAIZ}/cortes/${id}/comparacion/revision`, { method: 'PUT', body: forma(campos) }),
 
   // Subida troceada. `parte` espera 202 exacto; `trozosDe` puede fallar sin
   // drama (una subida nueva no tiene estado previo).

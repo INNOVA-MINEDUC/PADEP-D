@@ -59,11 +59,6 @@ const state = reactive({
   // registrar. La pantalla lo consume (y lo vacía) al montarse.
   carreraPorRegistrar: '',
 
-  // --- Carga de archivo (simulada) ---
-  // Solo queda la de S11: las de las pantallas 5, 7 y 10 se fueron con ellas al
-  // centralizar la extracción en el módulo 5.
-  s11Uploaded: false,
-
   // --- Listados y filtros (módulo 2, contra `GET /docentes`) ---
   // Viven aquí y no en la pantalla para sobrevivir a la navegación, y porque el
   // buscador de la cabecera escribe en `s9Query`. '' / null = sin filtro.
@@ -76,7 +71,6 @@ const state = reactive({
 
   // --- Seguimiento ---
   notasOverrides: {},
-  s11Marcados: [],
   fichaId: SEED[0].id,
   statusOverrides: {},
   s12Tab: 'resumen',
@@ -354,9 +348,6 @@ const actions = {
     fn?.()
   },
 
-  // --- Cargas ---
-  setUploaded(key, value) { state[key] = value },
-
   // --- Docentes ---
   getDocente,
   openFicha(id) {
@@ -369,11 +360,6 @@ const actions = {
   setNota(id, campo, valor) {
     const actual = state.notasOverrides[id] ?? {}
     state.notasOverrides[id] = { ...actual, [campo]: valor }
-  },
-  toggleMarcado(id) {
-    state.s11Marcados = state.s11Marcados.includes(id)
-      ? state.s11Marcados.filter(x => x !== id)
-      : [...state.s11Marcados, id]
   },
   clearFiltrosDocentes() {
     state.s9Query = ''

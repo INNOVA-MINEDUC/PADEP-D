@@ -19,9 +19,12 @@ export function usaSubida(idCorte, trozo) {
   const subiendo = ref(false)
   const avance = ref(0)          // 0..100
   const error = ref('')
+  // El corte tiene correcciones, altas o vínculos y la API no re-extrae sin
+  // pedirlo (409). La pantalla lo ofrece entonces, y solo entonces.
+  const pideForzar = ref(false)
 
   /** Sube un archivo en trozos y devuelve {id, llave}. */
-  async function subeUno(f, avisa) {
+  async function subeUno(f, avisa, forzar) {
     // El id se guarda por archivo: si la subida se corta, al reintentar el
     // mismo archivo se retoma donde iba en vez de empezar de cero.
     const llave = `subida:${idCorte.value}:${f.name}:${f.size}:${f.lastModified}`
@@ -57,6 +60,8 @@ export function usaSubida(idCorte, trozo) {
       cuerpo.append('indice', i)
       cuerpo.append('total', n)
       cuerpo.append('trozo', pedazo, f.name)
+      // explícito: un campo vacío del formulario la API lo da por ausente
+      cuerpo.append('forzar', forzar ? 'true' : 'false')
       await api.subeTrozo(idCorte.value, cuerpo)
 
       subido += pedazo.size
@@ -69,10 +74,17 @@ export function usaSubida(idCorte, trozo) {
     return { id, llave }
   }
 
-  /** Sube todos los archivos EN ORDEN y encola la extraccion. */
-  async function envia(archivos, tipo) {
+  /**
+   * Sube todos los archivos EN ORDEN y encola la extraccion.
+   *
+   * `forzar`: re-extraer un corte que ya tiene trabajo a mano. Lo escrito se
+   * recoloca por persona al rehacer la entrega, y lo que no se pueda ubicar con
+   * certeza no se aplica y sale en el curador (`sin_ubicar`).
+   */
+  async function envia(archivos, tipo, forzar = false) {
     subiendo.value = true
     error.value = ''
+    pideForzar.value = false
     avance.value = 0
 
     const total = archivos.reduce((s, f) => s + f.size, 0) || 1
@@ -85,13 +97,14 @@ export function usaSubida(idCorte, trozo) {
       // su parte, que es como el extractor aplica su rango de paginas. Nada de
       // Promise.all aqui.
       for (const f of archivos) {
-        subidas.push(await subeUno(f, n => pinta(hechos + n)))
+        subidas.push(await subeUno(f, n => pinta(hechos + n), forzar))
         hechos += f.size
         pinta(hechos)
       }
 
       const cuerpo = new FormData()
       cuerpo.append('tipo', tipo)
+      cuerpo.append('forzar', forzar ? 'true' : 'false')
       for (let i = 0; i < archivos.length; i++) {
         cuerpo.append('subidas', subidas[i].id)
         cuerpo.append('nombres', archivos[i].name)
@@ -103,6 +116,7 @@ export function usaSubida(idCorte, trozo) {
       return true
     } catch (e) {
       error.value = e.message || 'no se pudo contactar con el servidor'
+      pideForzar.value = e.estado === 409 && /trabajo a mano/.test(e.message || '')
       return false
     } finally {
       subiendo.value = false
@@ -110,5 +124,5 @@ export function usaSubida(idCorte, trozo) {
     }
   }
 
-  return { subiendo, avance, error, envia }
+  return { subiendo, avance, error, pideForzar, envia }
 }

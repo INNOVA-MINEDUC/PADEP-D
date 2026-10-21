@@ -96,6 +96,8 @@ export const api = {
     pide(`/cortes/${id}/correcciones`, {method: 'PUT', body: forma(campos)}),
   daDeAlta:    (id, campos) =>
     pide(`/cortes/${id}/altas`, {method: 'PUT', body: forma(campos)}),
+  vincula:     (id, campos) =>
+    pide(`/cortes/${id}/vinculos`, {method: 'PUT', body: forma(campos)}),
   aplica:      id =>
     pide(`/cortes/${id}/correcciones/aplicar`, {method: 'POST'}),
 
@@ -485,11 +487,26 @@ export function usaCurador(idCorte) {
   // filas de detrás y las correcciones caerían sobre la fila equivocada.
   const anula = (persona, si) => guardaAlta(persona, 'ANULADA', si ? 'si' : '');
 
+  // Vínculo: la fila SÍ se extrajo, con el nombre ilegible. La llave es
+  // `persona.vinculo` tal cual llega —la fila es la de datos/, no la de la
+  // entrega—. Carné vacío lo deshace. Se recarga: cambia `vinculada` y el
+  // recuento de abiertos, y no hay foco de escritura que perder.
+  async function vincula(persona, si) {
+    error.value = '';
+    try {
+      await api.vincula(idCorte.value, {
+        archivo: persona.vinculo.archivo, fila: persona.vinculo.fila,
+        carne: si ? persona.carne : '',
+      });
+      await carga();
+    } catch (e) { error.value = e.message; }
+  }
+
   const rehace = computed(() => !!datos.value?.altas_sin_reflejar);
   const puedeAplicar = computed(() =>
     !!(datos.value?.correcciones || rehace.value));
   const avisoAplicar = computed(() => rehace.value
-    ? 'Hay filas dadas de alta: la entrega se rehace entera (tarda unos minutos)'
+    ? 'Hay filas dadas de alta o vinculadas: la entrega se rehace entera (tarda unos minutos)'
     : datos.value?.correcciones ? '' : 'Todavía no se ha escrito ninguna corrección');
 
   async function aplica() {
@@ -501,7 +518,7 @@ export function usaCurador(idCorte) {
     } catch (e) { error.value = e.message; return false; }
   }
 
-  return {datos, error, carga, guardaCelda, guardaAlta, anula,
+  return {datos, error, carga, guardaCelda, guardaAlta, anula, vincula,
           puedeAplicar, avisoAplicar, aplica};
 }
 ```
@@ -524,6 +541,15 @@ Y el enlace al PDF, una sola página:
 <a :href="api.urlPagina(elegido, tarea.archivo_pdf, tarea.pagina)" target="_blank">
   ver página {{ tarea.pagina }}
 </a>
+```
+
+Y en la tarjeta de cada persona sin registro, el botón del vínculo. Una persona
+`vinculada` ya está resuelta: se oculta su formulario de alta.
+
+```vue
+<button v-if="persona.vinculo" @click="vincula(persona, !persona.vinculada)">
+  {{ persona.vinculada ? 'deshacer el vínculo' : 'es su fila: vincularla' }}
+</button>
 ```
 
 ---

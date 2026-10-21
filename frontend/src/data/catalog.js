@@ -42,7 +42,7 @@ export const NAV = [
   {
     id: 'm3', num: 3, title: 'Ficha Académica / Seguimiento',
     screens: [
-      { id: 11, title: 'Comparación de Nóminas', permiso: 'reportes.ver', maqueta: true },
+      { id: 11, title: 'Comparación de Nóminas', permiso: 'reportes.ver' },
       { id: 12, title: 'Ficha Académica (detalle)', permiso: 'reportes.ver', maqueta: true },
     ],
   },

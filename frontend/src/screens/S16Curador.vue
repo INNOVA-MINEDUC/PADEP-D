@@ -15,9 +15,10 @@ const { goTo } = usePadep()
 const { lista: cortes, elegido, carga: cargaCortes, elige } = usaCortes()
 const {
   datos, error, cargando, carga,
-  hecha, escrita, confirmable, confirma, confirmada, desconfirma,
-  guardaCelda, guardaAlta, anula,
-  estadoCelda, idCelda,
+  hecha, escrita, resuelta, confirmable, confirma, confirmada, desconfirma,
+  guardaCelda, guardaAlta, anula, vincula, descarta,
+  estadoCelda, idCelda, idAlta,
+  muestra, anota,
   tablaDe, camposSueltos,
   puedeAplicar, textoAplicar, avisoAplicar, aplica,
   porcentaje,
@@ -275,8 +276,9 @@ onMounted(async () => {
                         'input--ok': estado(t, c.campo, c.casilla) === 'ok',
                         'input--error': esFallo(estado(t, c.campo, c.casilla)),
                       }"
-                      :value="c.casilla.escrito"
+                      :value="muestra(idCelda(t, c.campo, c.casilla), c.casilla.escrito)"
                       :title="c.campo.pista"
+                      @input="anota(idCelda(t, c.campo, c.casilla), $event.target.value)"
                       @change="guarda(t, c.campo, c.casilla, $event.target.value)">
                     <span v-if="estado(t, c.campo, c.casilla) === 'ok'" class="acuse acuse--ok">✓ guardado</span>
                     <span v-else-if="estado(t, c.campo, c.casilla) === 'guardando'" class="acuse">guardando…</span>
@@ -307,14 +309,17 @@ onMounted(async () => {
                      cada pulsación y compite con la actualización que hace
                      `guardaCelda` tras la respuesta. La fuente de verdad es lo
                      que confirmó el backend. Y se guarda al SALIR del campo:
-                     no hay botón «guardar», son decenas de celdas. -->
+                     no hay botón «guardar», son decenas de celdas. Lo tecleado
+                     sin guardar vive en el borrador (`muestra`/`anota`): con
+                     `:value` pelado, cualquier render lo borraba. -->
                 <input
                   class="input"
                   :class="{
                     'input--ok': estado(t, c, k) === 'ok',
                     'input--error': esFallo(estado(t, c, k)),
                   }"
-                  :value="k.escrito" :placeholder="c.pista"
+                  :value="muestra(idCelda(t, c, k), k.escrito)" :placeholder="c.pista"
+                  @input="anota(idCelda(t, c, k), $event.target.value)"
                   @change="guarda(t, c, k, $event.target.value)">
                 <!-- El acuse va pegado a su celda. Antes el único indicio de
                      que algo se guardaba era un contador en lo alto de la
@@ -337,26 +342,55 @@ onMounted(async () => {
         </div>
       </article>
 
+      <!-- ---------- Correcciones sin ubicar ----------
+           Solo existen tras re-extraer un corte que ya tenía correcciones:
+           las que no se pudieron llevar con certeza a su persona NO se
+           aplicaron. Nunca caen en otra persona; se miran aquí. -->
+      <template v-if="datos.sin_ubicar?.length">
+        <h2 class="sub-titulo">Correcciones que no se pudieron recolocar</h2>
+        <p class="page-sub">
+          El documento se volvió a extraer y estas correcciones no se aplicaron: no se
+          sabe con certeza a qué fila van, o el papel ahora se lee distinto. Si la tarea
+          vuelve a salir arriba, escríbela otra vez allí y descarta esta.
+        </p>
+        <article v-for="x in datos.sin_ubicar" :key="`${x.ARCHIVO}|${x.FILA}|${x.CAMPO}`"
+                 class="tarea card card--flat">
+          <div class="card__body">
+            <div class="tarea__cabeza">
+              <span class="mono">{{ x.ARCHIVO }}</span>
+              <span :class="pillClass()">{{ x.CAMPO }} = {{ x.VALOR }}</span>
+              <span v-if="x.PAGINA" class="mono tarea__donde">página {{ x.PAGINA }}</span>
+            </div>
+            <p class="notice notice--clay">{{ x.MOTIVO }}</p>
+            <div class="btn-row">
+              <button class="btn btn--outline" @click="descarta(x)">descartar esta corrección</button>
+            </div>
+          </div>
+        </article>
+      </template>
+
       <!-- ---------- Sin registro ---------- -->
       <template v-if="datos.sin_registro.length">
         <h2 class="sub-titulo">Sin registro</h2>
         <p class="page-sub">
           Estas personas están en la nómina y no tienen <strong>ninguna</strong> fila en el
           documento. Hay que abrir la página que se indica: casi siempre el registro está y
-          lo que falta es poder identificarlo. Si al mirarlo la fila está ahí, se escribe
-          aquí y entra en la entrega. La identidad no se teclea —nombre, municipio y carrera
-          salen de la nómina—, solo lo que trae el papel.
+          lo que falta es poder identificarlo. Si se propone una fila que sobra y en el
+          papel es la suya, se vincula. Si la fila no se extrajo, se escribe aquí. En los
+          dos casos entra en la entrega y la identidad no se teclea —nombre, municipio y
+          carrera salen de la nómina—, solo lo que trae el papel.
         </p>
 
         <article
           v-for="x in datos.sin_registro" :key="x.carne"
-          class="tarea card card--flat" :class="{ 'tarea--hecha': escrita(x) }">
+          class="tarea card card--flat" :class="{ 'tarea--hecha': resuelta(x) }">
           <div class="card__body">
             <div class="tarea__cabeza">
               <span class="tarea__quien">{{ x.nombre }}</span>
               <span class="mono tarea__donde">{{ x.carne }}</span>
               <span :class="pillClass()">{{ x.documento }}</span>
-              <span v-if="x.anulada" :class="pillClass()">anulada</span>
+              <span v-if="x.vinculada" :class="pillClass('success')">fila vinculada</span>
+              <span v-else-if="x.anulada" :class="pillClass()">anulada</span>
               <span v-else-if="escrita(x)" :class="pillClass('success')">fila escrita</span>
               <span v-else :class="pillClass('danger')">sin registro</span>
             </div>
@@ -383,13 +417,26 @@ onMounted(async () => {
               {{ x.que_hacer }}<template v-if="x.posible"> — {{ x.posible }}</template>
             </p>
 
-            <template v-if="x.campos.length">
+            <!-- La fila que sobra en su página y se le parece: si en el papel es
+                 la suya, se vincula. El porcentaje es una pista, no una prueba:
+                 hay que mirar la página antes. Vinculada, ya está resuelta y no
+                 se le pide el alta. -->
+            <div v-if="x.vinculo" class="btn-row">
+              <button
+                class="btn" :class="x.vinculada ? 'btn--outline' : 'btn--primary'"
+                @click="vincula(x, !x.vinculada)">
+                {{ x.vinculada ? 'deshacer el vínculo' : 'es su fila: vincularla a esta persona' }}
+              </button>
+            </div>
+
+            <template v-if="!x.vinculada && x.campos.length">
               <div class="campos">
                 <div v-for="c in x.campos" :key="c.nombre" class="campo">
                   <span class="field__label">{{ c.nombre }}</span>
                   <input
-                    class="input" :value="c.escrito" :placeholder="c.pista"
+                    class="input" :value="muestra(idAlta(x, c.nombre), c.escrito)" :placeholder="c.pista"
                     :disabled="x.anulada"
+                    @input="anota(idAlta(x, c.nombre), $event.target.value)"
                     @change="guardaAlta(x, c.nombre, $event.target.value)">
                 </div>
               </div>
@@ -402,7 +449,8 @@ onMounted(async () => {
                 </button>
               </div>
             </template>
-            <p v-else class="notice notice--clay">{{ x.motivo }}</p>
+            <!-- Sin alta posible pero con fila que vincular, el motivo sobra. -->
+            <p v-else-if="!x.vinculo" class="notice notice--clay">{{ x.motivo }}</p>
           </div>
         </article>
       </template>
