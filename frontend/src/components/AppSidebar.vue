@@ -34,7 +34,7 @@ const { state, navVisible, currentModuleIndex, toggleModule, goTo, cierraMenuMov
 
         <div v-if="state.openModules[mod.id]" class="sidebar__screens">
           <button
-            v-for="scr in mod.screens"
+            v-for="scr in mod.screens.filter(s => !s.oculta)"
             :key="scr.id"
             class="sidebar__screen"
             :class="{ 'is-active': state.active === scr.id }"

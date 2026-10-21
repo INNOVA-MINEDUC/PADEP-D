@@ -14,6 +14,8 @@
  * `maqueta: true` = la pantalla todavía pinta datos de ejemplo (`SEED`), no la
  * base. El menú le pone la etiqueta «Vista previa» y la pantalla un aviso,
  * para que nadie tome por reales un docente o un reporte inventados.
+ *
+ * `oculta: true` = pantalla de detalle: permitida, pero fuera del menú.
  */
 export const NAV = [
   {
@@ -43,7 +45,11 @@ export const NAV = [
     id: 'm3', num: 3, title: 'Ficha Académica / Seguimiento',
     screens: [
       { id: 11, title: 'Comparación de Nóminas', permiso: 'reportes.ver' },
-      { id: 12, title: 'Ficha Académica (detalle)', permiso: 'reportes.ver', maqueta: true },
+      { id: 10, title: 'Seguimiento de Estatus', permiso: 'reportes.ver' },
+      // La ficha es un detalle: se abre desde la búsqueda, la comparación o el
+      // seguimiento, con una persona ya elegida. No va en el menú (`oculta`),
+      // pero sigue aquí para que `goTo` la permita y la miga diga dónde está.
+      { id: 12, title: 'Ficha del docente', permiso: 'reportes.ver', oculta: true },
     ],
   },
   {

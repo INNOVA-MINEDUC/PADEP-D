@@ -509,6 +509,19 @@
  *              escuela: ?string, codigo_escuela: ?string}} laboral  la mas reciente
  * @property {NotaDocente[]} notas
  * @property {AsistenciaDocente[]} asistencia
+ * @property {HistorialEstatus[]} historial  del mas viejo al mas nuevo; vacio = activo desde que entro
+ * @property {?{acta: string, fecha: ?string}} graduacion  solo mientras esta graduado
+ */
+
+/**
+ * Un cambio de estatus (`POST /docentes/{codigo}/estatus`). No sale del papel:
+ * lo escribe quien da seguimiento, y no se edita ni se borra.
+ * @typedef {object} HistorialEstatus
+ * @property {string} estatus      'activo' | 'retirado' | 'graduado'
+ * @property {string} fecha        AAAA-MM-DD
+ * @property {?string} motivo
+ * @property {?string} referencia  de la carta convenio (retiro)
+ * @property {?string} usuario     quien lo registro
  */
 
 /**

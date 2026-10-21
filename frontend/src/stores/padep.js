@@ -68,12 +68,27 @@ const state = reactive({
   s9Mun: null,
   s9Carrera: '',
   s9Estado: '',
+  s9Estatus: '',
 
   // --- Seguimiento ---
   notasOverrides: {},
-  fichaId: SEED[0].id,
+  // La ficha (S12) abierta: código PADEP, o null si se llegó sin elegir a nadie.
+  fichaCodigo: null,
+  // Con qué estatus abrir el formulario: la comparación de nóminas abre la
+  // ficha de una baja ya en «retirado». null = la pestaña de resumen.
+  fichaEstatus: null,
+  // De qué pantalla se vino (para «Volver») y los códigos de la lista que se
+  // estaba mirando (para «anterior / siguiente» sin volver a ella).
+  fichaOrigen: null,
+  fichaLista: [],
+
+  // Seguimiento de estatus (S10). '' = sin filtro.
+  s10Estatus: '',
+  s10Carrera: '',
+  s10Desde: '',
+  s10Hasta: '',
+  // Solo para las maquetas de reportes (S13, S14), que aún pintan el SEED.
   statusOverrides: {},
-  s12Tab: 'resumen',
 
   // --- Reportes ---
   reportVars: ['Sede', 'Estatus', 'Notas'],
@@ -84,8 +99,6 @@ const state = reactive({
   // Un solo diálogo para todo lo que pide confirmar (quitar sede, reemplazar
   // enlace, borrar persona): la acción viaja con él.
   confirmacion: { open: false },
-  // Código PADEP del docente abierto en la consulta rápida (S09), o null.
-  drawerDocenteId: null,
 })
 
 /* =========================================================
@@ -253,7 +266,6 @@ const actions = {
   goTo(id) {
     if (!pantallaPermitida(id)) return
     state.active = id
-    state.drawerDocenteId = null
     state.profileOpen = false
     state.menuMovil = false
     actions.abreModuloDe(id)
@@ -350,13 +362,23 @@ const actions = {
 
   // --- Docentes ---
   getDocente,
-  openFicha(id) {
-    state.fichaId = id
+  /**
+   * Abre la ficha (S12). `estatus` deja el formulario ya preparado; `lista`,
+   * los códigos de la tabla de la que se viene, en su orden.
+   */
+  openFicha(codigo, { estatus = null, lista = [] } = {}) {
+    state.fichaOrigen = state.active === 12 ? state.fichaOrigen : state.active
+    state.fichaLista = [...new Set(lista.length ? lista : [codigo])]
+    state.fichaCodigo = codigo
+    state.fichaEstatus = estatus
     actions.goTo(12)
   },
-  openDrawer(codigo) { state.drawerDocenteId = codigo },
-  closeDrawer()      { state.drawerDocenteId = null },
-  setEstatus(id, estatus) { state.statusOverrides[id] = estatus },
+  /** Otra persona de la misma lista, sin salir de la ficha. */
+  fichaVecina(codigo) {
+    state.fichaEstatus = null
+    state.fichaCodigo = codigo
+  },
+  volverDeFicha() { actions.goTo(state.fichaOrigen ?? 9) },
   setNota(id, campo, valor) {
     const actual = state.notasOverrides[id] ?? {}
     state.notasOverrides[id] = { ...actual, [campo]: valor }
@@ -367,6 +389,7 @@ const actions = {
     state.s9Mun = null
     state.s9Carrera = ''
     state.s9Estado = ''
+    state.s9Estatus = ''
   },
 
   // --- Reportes ---

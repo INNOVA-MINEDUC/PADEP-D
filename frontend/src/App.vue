@@ -5,7 +5,6 @@ import { usePadep } from '@/stores/padep'
 import LoginView from '@/components/LoginView.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
-import DocenteDrawer from '@/components/DocenteDrawer.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CambioPassword from '@/components/CambioPassword.vue'
 import Icono from '@/components/Icono.vue'
@@ -16,6 +15,7 @@ import S03Enlaces from '@/screens/S03Enlaces.vue'
 import S04Carreras from '@/screens/S04Carreras.vue'
 import S08ListadoInscritos from '@/screens/S08ListadoInscritos.vue'
 import S09BusquedaDocentes from '@/screens/S09BusquedaDocentes.vue'
+import S10SeguimientoEstatus from '@/screens/S10SeguimientoEstatus.vue'
 import S11ComparacionNominas from '@/screens/S11ComparacionNominas.vue'
 import S12FichaAcademica from '@/screens/S12FichaAcademica.vue'
 import S13ConstructorReportes from '@/screens/S13ConstructorReportes.vue'
@@ -32,9 +32,10 @@ onMounted(restauraSesion)
 /**
  * Mapa pantalla → componente. Los ids conservan la numeración del prototipo,
  * con huecos: 6 nunca existió (el 4 lo ocupó después el catálogo de
- * carreras), y 5, 7 y 10 se retiraron al centralizar
+ * carreras), y 5 y 7 se retiraron al centralizar
  * la extracción en el módulo 5 (subían un archivo de mentira y pintaban SEED;
- * lo que de verdad extraen esos documentos es S15). Al montar vue-router, esto
+ * lo que de verdad extraen esos documentos es S15). El 10 era otro de esos y
+ * hoy es el seguimiento de estatus. Al montar vue-router, esto
  * se vuelve el array de rutas casi sin cambios.
  */
 const SCREENS = {
@@ -44,6 +45,7 @@ const SCREENS = {
   4: S04Carreras,
   8: S08ListadoInscritos,
   9: S09BusquedaDocentes,
+  10: S10SeguimientoEstatus,
   11: S11ComparacionNominas,
   12: S12FichaAcademica,
   13: S13ConstructorReportes,
@@ -108,7 +110,6 @@ const esMaqueta = computed(() => currentModule.value.screens.some(s => s.id === 
 
     <ConfirmDialog />
     <CambioPassword />
-    <DocenteDrawer />
   </div>
 </template>
 

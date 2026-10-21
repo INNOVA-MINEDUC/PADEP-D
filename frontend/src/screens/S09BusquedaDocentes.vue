@@ -4,7 +4,7 @@ import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
 import { usaDocentes } from '@/composables/usaDocentes'
 import { CARRERAS } from '@/data/carreras'
-import { pillClass, estadoNotaTone, plural } from '@/utils/format'
+import { pillClass, estadoNotaTone, estatusTone, capital, plural } from '@/utils/format'
 import AvisoError from '@/components/AvisoError.vue'
 import Paginador from '@/components/Paginador.vue'
 import Icono from '@/components/Icono.vue'
@@ -15,10 +15,15 @@ import Icono from '@/components/Icono.vue'
  *
  * Busca en todas las cohortes —la columna Cohorte lo dice—. El texto vale para
  * nombre (sin tildes ni mayúsculas), principio del código PADEP o CUI exacto.
+ *
+ * Es el único buscador de docentes: una fila abre su ficha (S12), y la ficha
+ * recorre esta misma página con «anterior / siguiente». Los filtros viven en el
+ * store, así que al volver siguen puestos.
  */
 const POR_PAGINA = 50
 const ESTADOS = ['APROBADO', 'CDR', 'REPROBADO', 'PENDIENTE']
-const { state, openDrawer, clearFiltrosDocentes } = usePadep()
+const { state, openFicha, clearFiltrosDocentes } = usePadep()
+const ESTATUS = ['activo', 'retirado', 'graduado']
 
 const filtros = () => ({
   q: state.s9Query.trim(),
@@ -26,6 +31,7 @@ const filtros = () => ({
   id_municipio: state.s9Mun,
   carrera: state.s9Carrera,
   estado: state.s9Estado,
+  estatus: state.s9Estatus,
 })
 const { filas, total, paginas, pagina, cargando, error } = usaDocentes(filtros, POR_PAGINA)
 
@@ -42,7 +48,9 @@ watch(() => state.s9Dep, async d => {
   municipios.value = d ? await lee(api.municipios(d)) : []
 })
 
-const hayFiltros = computed(() => !!(state.s9Query || state.s9Dep || state.s9Carrera || state.s9Estado))
+const hayFiltros = computed(() => !!(state.s9Query || state.s9Dep || state.s9Carrera || state.s9Estado || state.s9Estatus))
+
+const abre = d => openFicha(d.codigo_padep, { lista: filas.value.map(f => f.codigo_padep) })
 
 const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
 </script>
@@ -51,7 +59,7 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
   <div>
     <p class="eyebrow eyebrow--plain">Registro Inicial (Docente)</p>
     <h1 class="page-title">Búsqueda y Consulta de Docentes</h1>
-    <p class="page-sub">Buscar y filtrar los docentes cargados en la base.</p>
+    <p class="page-sub">Buscar y filtrar los docentes cargados en la base. Haz clic en una fila para abrir su ficha.</p>
 
     <AvisoError :mensaje="error" />
 
@@ -95,6 +103,13 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
             <option v-for="e in ESTADOS" :key="e" :value="e">{{ e }}</option>
           </select>
         </label>
+        <label class="field field--tight">
+          <span class="field__label">Estatus</span>
+          <select v-model="state.s9Estatus" class="select">
+            <option value="">Todos</option>
+            <option v-for="e in ESTATUS" :key="e" :value="e">{{ capital(e) }}</option>
+          </select>
+        </label>
       </div>
 
       <footer v-if="hayFiltros" class="filtros__foot">
@@ -106,17 +121,18 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
       <table class="table">
         <thead>
           <tr>
-            <th>Docente</th><th>Cohorte</th><th>Carrera</th><th>Municipio</th>
+            <th>Docente</th><th>Cohorte</th><th>Carrera</th><th>Municipio</th><th>Estatus</th>
             <th>Notas</th><th class="is-right">Promedio</th><th class="is-right">Asistencia</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!cargando && filas.length === 0">
-            <td colspan="7" class="empty">{{ error ? 'No se pudo leer la lista.' : 'Sin resultados para esta búsqueda.' }}</td>
+            <td colspan="8" class="empty">{{ error ? 'No se pudo leer la lista.' : 'Sin resultados para esta búsqueda.' }}</td>
           </tr>
           <tr v-for="d in filas" :key="`${d.codigo_padep}-${d.cohorte}-${d.carrera}`"
             class="is-clickable" tabindex="0"
-            @click="openDrawer(d.codigo_padep)" @keydown.enter="openDrawer(d.codigo_padep)">
+            :title="`Abrir la ficha de ${d.nombre}`"
+            @click="abre(d)" @keydown.enter="abre(d)">
             <td>
               <div class="cell-name">{{ d.nombre }}</div>
               <div class="cell-dpi mono">{{ d.codigo_padep }} · CUI {{ d.cui }}</div>
@@ -127,6 +143,7 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
               <div>{{ d.municipio || '—' }}</div>
               <div class="cell-dpi">{{ d.departamento }}</div>
             </td>
+            <td><span :class="pillClass(estatusTone(d.estatus_academico))">{{ capital(d.estatus_academico) }}</span></td>
             <td>
               <span v-if="d.notas === 0" class="cell-dpi">Sin notas</span>
               <div v-else class="notas">
@@ -149,7 +166,8 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
 .filtros { padding: 18px; margin-bottom: 20px; }
 .filtros__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; color: var(--muted-2); }
 .filtros__title { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
-.filtros__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.filtros__grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .filtros__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .filtros__q { grid-column: 1 / -1; }
 @media (max-width: 720px) { .filtros__grid { grid-template-columns: 1fr; } }
 .field--tight { margin-bottom: 0; }

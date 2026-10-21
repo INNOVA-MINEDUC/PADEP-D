@@ -120,6 +120,15 @@ export const api = {
   docentes: (filtros = {}) => pide(`${RAIZ}/docentes${consulta(filtros)}`),
   // `codigo`: el codigo PADEP (11 digitos) o el CUI (13). 404 si no existe.
   docente: (codigo) => pide(`${RAIZ}/docentes/${encodeURIComponent(codigo)}`),
+  // La excepcion: el estatus academico (activo, retirado, graduado) no esta en
+  // ningun papel y se escribe aqui. Solo añade al historial, no lo edita.
+  // `campos`: cohorte, carrera, estatus, fecha, motivo, referencia, acta.
+  // Los cambios registrados, del mas reciente al mas viejo, con `resumen` (las
+  // inscripciones por estatus vigente). Filtros: cohorte, carrera, estatus,
+  // desde, hasta (AAAA-MM-DD), pagina, por_pagina.
+  cambiosEstatus: (filtros = {}) => pide(`${RAIZ}/seguimiento/estatus${consulta(filtros)}`),
+  cambiaEstatus: (codigo, campos) =>
+    pide(`${RAIZ}/docentes/${encodeURIComponent(codigo)}/estatus`, { method: 'POST', body: forma(campos) }),
 }
 
 /** `{a: 1, b: '', c: null}` -> `?a=1`. Un filtro vacio no se manda. */

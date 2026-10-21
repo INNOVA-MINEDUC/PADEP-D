@@ -7,7 +7,7 @@ import SelectorCorte from '@/components/SelectorCorte.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import { pillClass, plural } from '@/utils/format'
 
-const { puede } = usePadep()
+const { puede, openFicha } = usePadep()
 
 // El corte que se revisa se comparte con las otras pantallas (misma llave de
 // localStorage): normalmente es el último que se entregó.
@@ -218,6 +218,11 @@ onMounted(async () => {
                 </span>
                 <span v-else :class="pillClass('danger')">sin rastro en el pago nuevo</span>
                 <div v-if="comoIba(x.historial)" class="sub">Antes: {{ comoIba(x.historial) }}</div>
+                <!-- La marca dice «hay que mirarlo»; la decisión —se retiró o
+                     no— se registra en su ficha, con motivo y fecha. -->
+                <button
+                  v-if="puede('cohortes.gestionar')" class="btn-link"
+                  @click="openFicha(x.carne, { estatus: 'retirado', lista: filas.map(f => f.carne) })">Registrar retiro en su ficha</button>
               </td>
               <td v-else-if="pestana === 'altas'">
                 <span

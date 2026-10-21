@@ -3170,7 +3170,7 @@
           "docentes"
         ],
         "summary": "Los docentes inscritos, con el resumen de sus notas",
-        "description": "Una fila por **inscripción** (docente en una carrera de una cohorte).\n\n- `cohorte` (`11`) y `carrera` (`35`, `36`) filtran por código.\n- `id_departamento` / `id_municipio`, los de `GET /departamentos`.\n- `q` busca en el nombre —sin distinguir tildes—, en el principio del\n  código PADEP y en el CUI exacto.\n- `estado` (`APROBADO`, `CDR`, `REPROBADO`, `PENDIENTE`) deja a quienes\n  tienen al menos una nota así.\n\n`total` y `paginas` son del filtro entero, no de la página.",
+        "description": "Una fila por **inscripción** (docente en una carrera de una cohorte).\n\n- `cohorte` (`11`) y `carrera` (`35`, `36`) filtran por código.\n- `id_departamento` / `id_municipio`, los de `GET /departamentos`.\n- `q` busca en el nombre —sin distinguir tildes—, en el principio del\n  código PADEP y en el CUI exacto.\n- `estado` (`APROBADO`, `CDR`, `REPROBADO`, `PENDIENTE`) deja a quienes\n  tienen al menos una nota así.\n- `estatus` (`activo`, `retirado`, `graduado`), el académico vigente.\n\n`total` y `paginas` son del filtro entero, no de la página.",
         "operationId": "listar_docentes_docentes_get",
         "parameters": [
           {
@@ -3267,6 +3267,22 @@
                 }
               ],
               "title": "Estado"
+            }
+          },
+          {
+            "name": "estatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Estatus"
             }
           },
           {
@@ -3381,6 +3397,207 @@
           }
         }
       }
+    },
+    "/seguimiento/estatus": {
+      "get": {
+        "tags": [
+          "docentes"
+        ],
+        "summary": "Los cambios de estatus registrados, con el recuento vigente",
+        "description": "Del más reciente al más viejo. `estatus` es al que se cambió;\n`desde`/`hasta` (AAAA-MM-DD, incluidos), la fecha del cambio. Cada cambio\ntrae `antes` (de qué estatus venía) y `vigente` (el de la persona hoy).\n\n`resumen` cuenta las inscripciones por estatus vigente, solo con los\nfiltros de cohorte y carrera.",
+        "operationId": "listar_cambios_estatus_seguimiento_estatus_get",
+        "parameters": [
+          {
+            "name": "cohorte",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cohorte"
+            }
+          },
+          {
+            "name": "carrera",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Carrera"
+            }
+          },
+          {
+            "name": "estatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Estatus"
+            }
+          },
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Desde"
+            }
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hasta"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Pagina"
+            }
+          },
+          {
+            "name": "por_pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Por Pagina"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Listar Cambios Estatus Seguimiento Estatus Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "422": {
+            "description": "un filtro no vale"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
+    },
+    "/docentes/{codigo}/estatus": {
+      "post": {
+        "tags": [
+          "docentes"
+        ],
+        "summary": "Registra un cambio de estatus: activo, retirado o graduado",
+        "description": "La inscripción es la del docente `codigo` en `cohorte` y `carrera`\n(sus códigos: `11`, `35`).\n\n- `retirado` exige `motivo`; `referencia` es la de la carta convenio.\n- `graduado` exige `acta` (única).\n- volver a `activo` exige `motivo`.\n- `fecha` (AAAA-MM-DD, hoy si va vacía) no puede ser futura ni anterior\n  al último cambio.\n\nNo se edita ni se borra: el historial se corrige escribiendo otro estatus\nencima. Va a `HistorialEstatus` (y `Graduacion`), que el cargador no toca.\nDevuelve el estatus vigente, el historial y la graduación.",
+        "operationId": "cambiar_estatus_docentes__codigo__estatus_post",
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Codigo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_cambiar_estatus_docentes__codigo__estatus_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cambiar Estatus Docentes  Codigo  Estatus Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "404": {
+            "description": "no tiene inscripción en esa cohorte y carrera"
+          },
+          "409": {
+            "description": "el acta ya es de otra graduación"
+          },
+          "422": {
+            "description": "falta el motivo o el acta, la fecha no vale, o el estatus ya es ese"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3420,6 +3637,49 @@
           "id_enlace"
         ],
         "title": "Body_asignar_enlace_cohortes__cohorte__enlaces__id_cohorte_sede__put"
+      },
+      "Body_cambiar_estatus_docentes__codigo__estatus_post": {
+        "properties": {
+          "cohorte": {
+            "type": "string",
+            "title": "Cohorte"
+          },
+          "carrera": {
+            "type": "string",
+            "title": "Carrera"
+          },
+          "estatus": {
+            "type": "string",
+            "title": "Estatus"
+          },
+          "fecha": {
+            "type": "string",
+            "title": "Fecha",
+            "default": ""
+          },
+          "motivo": {
+            "type": "string",
+            "title": "Motivo",
+            "default": ""
+          },
+          "referencia": {
+            "type": "string",
+            "title": "Referencia",
+            "default": ""
+          },
+          "acta": {
+            "type": "string",
+            "title": "Acta",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohorte",
+          "carrera",
+          "estatus"
+        ],
+        "title": "Body_cambiar_estatus_docentes__codigo__estatus_post"
       },
       "Body_cargar_cortes__id_corte__carga_post": {
         "properties": {

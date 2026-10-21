@@ -57,6 +57,10 @@ inscripciones[]  una por carrera/cohorte, y dentro de cada una:
                    nota, estado, cuadra, pagina_origen
   asistencia[]     por corte: sesiones[{numero, presente}], presentes,
                    total_declarado, cuadra, porcentaje, pagina_origen
+  estatus_academico  activo | retirado | graduado (el vigente)
+  historial[]      cambios de estatus, del más viejo al más nuevo:
+                   {estatus, fecha, motivo, referencia, usuario}
+  graduacion       {acta, fecha} solo mientras está graduado; si no, null
 nomina[]         lo que dice la nómina de cada pago, TAL CUAL llegó
 incidencias[]    lo que quedó sin resolver al cargar (FALTA, REVISAR, ...)
 ```
@@ -72,6 +76,39 @@ Tres cosas para pintarlo bien:
   no un error: el dato es el del papel.
 - **`pagina_origen`** es la página del PDF de donde salió. Con
   `GET /cortes/{id}/pagina/{pdf}/{n}` se puede enlazar a esa hoja sola.
+
+## La única escritura: el estatus académico
+
+`POST /docentes/{codigo}/estatus`, permiso `cohortes.gestionar`. Formulario:
+`cohorte`, `carrera` (sus códigos: `11`, `35`), `estatus`, `fecha`
+(AAAA-MM-DD; vacía = hoy), `motivo`, `referencia` (carta convenio, solo
+retiro), `acta` (solo graduación). Devuelve `{estatus_academico, historial,
+graduacion}` de esa inscripción, para no tener que volver a pedir la ficha.
+
+Es la excepción porque **el estatus no está en ningún papel**: salir de la
+nómina no es retirarse (Castañeda siguió en las actas), y ningún PDF dice quién
+se graduó. Va a `HistorialEstatus` y `Graduacion`, que el cargador no toca.
+
+- `retirado` exige `motivo`; `graduado`, `acta` (única: repetida = **409**);
+  volver a `activo` desde otro estatus exige `motivo`.
+- Repetir el vigente, una fecha futura o anterior al último cambio = **422**.
+- **No se edita ni se borra**: se corrige registrando otro estatus encima.
+  Lo vigente lo copia un trigger del esquema a `Inscripcion.estatus_academico`,
+  que es lo que ya trae `GET /docentes`.
+- 404 si la persona no tiene inscripción en esa cohorte y carrera.
+
+### `GET /seguimiento/estatus` — los cambios, para la pantalla de seguimiento
+
+Del más reciente al más viejo, paginado como `GET /docentes`. Filtros:
+`cohorte`, `carrera`, `estatus` (al que se cambió), `desde`, `hasta`
+(AAAA-MM-DD, incluidos). Cada cambio trae `fecha`, `antes` (de qué estatus
+venía), `estatus`, `vigente` (el de la persona hoy), `motivo`, `referencia`,
+`usuario` y los datos de la persona. `resumen` cuenta las **inscripciones**
+por estatus vigente con los filtros de cohorte y carrera, sin las fechas: es la
+foto de hoy. `GET /docentes` filtra también por `estatus`.
+
+Probado en **MariaDB 10.5**, que es lo que corre en producción (no MySQL 8):
+`antes` sale de `LAG()`, que MariaDB tiene desde la 10.2.
 
 ## Lo que NO hay
 
