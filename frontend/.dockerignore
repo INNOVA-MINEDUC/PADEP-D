@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.gitignore
+
+# Los .env de desarrollo no entran: la URL de la API se decide con el build-arg
+# VITE_API_URL, no con un archivo que se cuele en la imagen.
+.env
+.env.*
+
+# Documentacion y material de traspaso: no forma parte del build.
+*.md

@@ -1,0 +1,64 @@
+# Compila la imagen del frontend y la publica en GHCR. La del backend ya no:
+# el Express se retiro y la API (FastAPI) se publica desde su propio repo.
+#
+# No hace falta crear ningun secreto: GITHUB_TOKEN basta para empujar al GHCR
+# del propio repo, siempre que el job declare `packages: write`.
+
+name: Publicar imagenes Docker
+
+on:
+  push:
+    branches: [main, development]
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: frontend
+            contexto: ./frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR exige el nombre en minusculas y el repo es INNOVA-MINEDUC/PADEP-D.
+      - name: Calcular etiquetas
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.nombre }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Construir y publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.contexto }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Cache en el propio registry: el segundo build no repite npm ci.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

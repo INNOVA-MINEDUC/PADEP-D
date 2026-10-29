@@ -1,0 +1,653 @@
+{
+  "/ajustes": {
+    "extraccion": true,
+    "trozo_bytes": 8388608
+  },
+  "/tipos": {
+    "asistencia": {
+      "archivos": 1,
+      "paginas_tipicas": "135"
+    },
+    "control_academico": {
+      "archivos": 1,
+      "paginas_tipicas": "245"
+    },
+    "reporte_resultados": {
+      "archivos": 1,
+      "paginas_tipicas": "351"
+    },
+    "ubicacion_sedes": {
+      "archivos": 1,
+      "paginas_tipicas": "15"
+    },
+    "docentes": {
+      "archivos": 2,
+      "paginas_tipicas": "16"
+    }
+  },
+  "/cortes": [
+    {
+      "id": "digecade-11-car35-t6-c1",
+      "unidad": "digecade",
+      "cohorte": "11",
+      "carrera": "35",
+      "trimestre": 6,
+      "corte": 1,
+      "carpeta": "cortes/digecade/11/car35/t6-c1",
+      "nomina": "Nomina 35 6to pago 2026.xlsx",
+      "documentos": {
+        "asistencia": {
+          "pdfs": [
+            "ASISTENCIA_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 1077
+        },
+        "control_academico": {
+          "pdfs": [
+            "CONTROL ACADEMICO_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 1077
+        },
+        "reporte_resultados": {
+          "pdfs": [
+            "REPORTE DE RESULTADOS_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 2175
+        },
+        "ubicacion_sedes": {
+          "pdfs": [
+            "UBICACION_SEDES_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 107
+        },
+        "docentes": {
+          "pdfs": [
+            "1 LISTADO_DOCENTES_COMUNICACION_PROF6o._DIGECADE_35.pdf",
+            "2 LISTADO_DOCENTES_FACTORES_PROF6o._DIGECADE_35.pdf"
+          ],
+          "extraido": true,
+          "filas": 182
+        }
+      },
+      "entregado": true,
+      "curado": true,
+      "falta_para_entregar": []
+    },
+    {
+      "id": "digecade-11-car36-t6-c1",
+      "unidad": "digecade",
+      "cohorte": "11",
+      "carrera": "36",
+      "trimestre": 6,
+      "corte": 1,
+      "carpeta": "cortes/digecade/11/car36/t6-c1",
+      "nomina": "Nomina 36 6to pago 2026.xlsx",
+      "documentos": {
+        "asistencia": {
+          "pdfs": [
+            "ASISTENCIA_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 2555
+        },
+        "control_academico": {
+          "pdfs": [
+            "CONTROL ACADEMICO_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 2558
+        },
+        "reporte_resultados": {
+          "pdfs": [
+            "REPORTE DE RESULTADOS_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 5227
+        },
+        "ubicacion_sedes": {
+          "pdfs": [
+            "UBICACION_SEDES_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 115
+        },
+        "docentes": {
+          "pdfs": [
+            "LISTADO_DOCENTES_AREA DE CIENCIAS_PROF6o.DIGECADE_36.pdf",
+            "LISTADO_DOCENTES_AREA DE PRODUCTIVIDAD_PROF6o._DIGECADE_36.pdf"
+          ],
+          "extraido": true,
+          "filas": 224
+        }
+      },
+      "entregado": true,
+      "curado": true,
+      "falta_para_entregar": []
+    }
+  ],
+  "/extracciones": [
+    {
+      "id": "2ff0b54eda4d",
+      "tipo": "entrega",
+      "unidad": "digecade",
+      "cohorte": "11",
+      "carrera": "36",
+      "trimestre": 6,
+      "corte": 1,
+      "estado": "terminado",
+      "creado": "2026-08-05T17:29:55+00:00",
+      "iniciado": "2026-08-05T17:29:55+00:00",
+      "terminado": "2026-08-05T17:32:47+00:00",
+      "paginas_hechas": 0,
+      "paginas_totales": 0,
+      "archivos": [],
+      "salidas": [
+        "PADEP_36_final.xlsx",
+        "asistencia_extraida.csv",
+        "... 8 mas (recortado)"
+      ],
+      "origen": [],
+      "etiquetas": {},
+      "forzar": false,
+      "ultima_linea": "revisar: 267 indicios",
+      "error": "",
+      "puesto_en_cola": 0
+    },
+    {
+      "id": "3105b52b6750",
+      "tipo": "entrega",
+      "unidad": "digecade",
+      "cohorte": "11",
+      "carrera": "36",
+      "trimestre": 6,
+      "corte": 1,
+      "estado": "terminado",
+      "creado": "2026-08-05T16:38:47+00:00",
+      "iniciado": "2026-08-05T16:38:47+00:00",
+      "terminado": "2026-08-05T16:40:10+00:00",
+      "paginas_hechas": 0,
+      "paginas_totales": 0,
+      "archivos": [],
+      "salidas": [
+        "PADEP_36_final.xlsx",
+        "asistencia_extraida.csv",
+        "... 8 mas (recortado)"
+      ],
+      "origen": [],
+      "etiquetas": {},
+      "forzar": false,
+      "ultima_linea": "revisar: 255 indicios",
+      "error": "",
+      "puesto_en_cola": 0
+    },
+    "... 13 mas (recortado)"
+  ],
+  "/cohortes": [
+    {
+      "id_cohorte": 1,
+      "unidad": "digecade",
+      "codigo": "11",
+      "nombre": null,
+      "estatus": "activa",
+      "sedes": 107,
+      "enlaces_asignados": 0
+    },
+    {
+      "id_cohorte": 2,
+      "unidad": "efpem",
+      "codigo": "11",
+      "nombre": null,
+      "estatus": "planificacion",
+      "sedes": 0,
+      "enlaces_asignados": 0
+    }
+  ],
+  "/departamentos": [
+    {
+      "id_departamento": 16,
+      "nombre": "Alta Verapaz"
+    },
+    {
+      "id_departamento": 15,
+      "nombre": "Baja Verapaz"
+    },
+    "... 20 mas (recortado)"
+  ],
+  "/departamentos/4/municipios": [
+    {
+      "id_municipio": 8,
+      "nombre": "Chimaltenango"
+    },
+    {
+      "id_municipio": 9,
+      "nombre": "Patzicía"
+    },
+    "... 2 mas (recortado)"
+  ],
+  "/municipios/8/escuelas": [
+    {
+      "id_escuela": 8,
+      "nombre": "Escuela Normal Rural No. 1 Dr. Pedro Molina",
+      "direccion": "Finca La Alameda Chimaltenango"
+    }
+  ],
+  "/enlaces": [
+    {
+      "id_enlace": 1,
+      "unidad": "digecade",
+      "nombre": "Nombre del enlace",
+      "cargo": null,
+      "telefono": null,
+      "email": null,
+      "asignaciones": []
+    }
+  ],
+  "/docentes?por_pagina=2": {
+    "total": 1077,
+    "pagina": 1,
+    "por_pagina": 2,
+    "paginas": 539,
+    "docentes": [
+      {
+        "codigo_padep": "00000000000",
+        "cui": "0000000000000",
+        "nombre": "Apellido Apellido Nombre Nombre",
+        "sexo": "F",
+        "unidad": "digecade",
+        "cohorte": "11",
+        "carrera": "35",
+        "carrera_nombre": "Profesorado de educacion preprimaria intercultural",
+        "departamento": "Retalhuleu",
+        "municipio": "Retalhuleu",
+        "estatus_academico": "activo",
+        "escalafon": "B",
+        "notas": 2,
+        "aprobadas": 2,
+        "cdr": 0,
+        "reprobadas": 0,
+        "promedio": 93,
+        "presentes": 6,
+        "sesiones": 7,
+        "asistencia_porcentaje": 85.7
+      },
+      {
+        "codigo_padep": "00000000000",
+        "cui": "0000000000000",
+        "nombre": "Apellido Apellido Nombre Nombre",
+        "sexo": "F",
+        "unidad": "digecade",
+        "cohorte": "11",
+        "carrera": "35",
+        "carrera_nombre": "Profesorado de educacion preprimaria intercultural",
+        "departamento": "Santa Rosa",
+        "municipio": "Chiquimulilla",
+        "estatus_academico": "activo",
+        "escalafon": "A",
+        "notas": 2,
+        "aprobadas": 2,
+        "cdr": 0,
+        "reprobadas": 0,
+        "promedio": 97,
+        "presentes": 7,
+        "sesiones": 7,
+        "asistencia_porcentaje": 100
+      }
+    ]
+  },
+  "/cortes/{id}": {
+    "id": "digecade-11-car35-t6-c1",
+    "unidad": "digecade",
+    "cohorte": "11",
+    "carrera": "35",
+    "trimestre": 6,
+    "corte": 1,
+    "carpeta": "cortes/digecade/11/car35/t6-c1",
+    "nomina": "Nomina 35 6to pago 2026.xlsx",
+    "documentos": {
+      "asistencia": {
+        "pdfs": [
+          "ASISTENCIA_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 1077
+      },
+      "control_academico": {
+        "pdfs": [
+          "CONTROL ACADEMICO_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 1077
+      },
+      "reporte_resultados": {
+        "pdfs": [
+          "REPORTE DE RESULTADOS_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 2175
+      },
+      "ubicacion_sedes": {
+        "pdfs": [
+          "UBICACION_SEDES_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 107
+      },
+      "docentes": {
+        "pdfs": [
+          "1 LISTADO_DOCENTES_COMUNICACION_PROF6o._DIGECADE_35.pdf",
+          "2 LISTADO_DOCENTES_FACTORES_PROF6o._DIGECADE_35.pdf"
+        ],
+        "extraido": true,
+        "filas": 182
+      }
+    },
+    "entregado": true,
+    "curado": true,
+    "falta_para_entregar": []
+  },
+  "/cortes/{id}/pendientes": {
+    "listo": true,
+    "tareas": [
+      {
+        "id": "T000",
+        "documento": "Asistencia",
+        "archivo": "asistencia_extraida.csv",
+        "pdf": "ASISTENCIA_PROF6o._DIGECADE_35.pdf",
+        "pdf_url": "/cortes/digecade-11-car35-t6-c1/pagina/ASISTENCIA_PROF6o._DIGECADE_35.pdf/57",
+        "pagina": "57",
+        "quien": "Hernández Pérez Olga Cristina",
+        "donde": "Izabal · Los Amates",
+        "filas": [
+          367
+        ],
+        "campos": [
+          {
+            "nombre": "S1",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "367",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          {
+            "nombre": "S2",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "367",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          "... 6 mas (recortado)"
+        ],
+        "revisar": "el total del papel no coincide con la suma de sesiones",
+        "solo_revisar": true
+      },
+      {
+        "id": "T001",
+        "documento": "Asistencia",
+        "archivo": "asistencia_extraida.csv",
+        "pdf": "ASISTENCIA_PROF6o._DIGECADE_35.pdf",
+        "pdf_url": "/cortes/digecade-11-car35-t6-c1/pagina/ASISTENCIA_PROF6o._DIGECADE_35.pdf/62",
+        "pagina": "62",
+        "quien": "Morales Martínez Angela Isabel",
+        "donde": "Jalapa · Jalapa",
+        "filas": [
+          424
+        ],
+        "campos": [
+          {
+            "nombre": "S1",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "424",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          {
+            "nombre": "S2",
+            "pista": "X si asistió, 0 si no",
+            "nota": "",
+            "motivo": "revisar",
+            "por_fila": false,
+            "casillas": [
+              {
+                "filas": "424",
+                "quien": "",
+                "actual": "X",
+                "escrito": "X"
+              }
+            ]
+          },
+          "... 6 mas (recortado)"
+        ],
+        "revisar": "el total del papel no coincide con la suma de sesiones",
+        "solo_revisar": true
+      },
+      "... 20 mas (recortado)"
+    ],
+    "documentos": [
+      "Asistencia",
+      "Control académico",
+      "... 3 mas (recortado)"
+    ],
+    "sin_registro": [],
+    "correcciones": 98,
+    "altas": 0,
+    "sin_completar": 3,
+    "vinculos": 0,
+    "sin_ubicar": [],
+    "sin_registro_abiertos": 0,
+    "escrito_sin_volcar": false,
+    "altas_sin_reflejar": false
+  },
+  "/cortes/{id}/auditoria": {
+    "hay": true,
+    "cuando": "2026-10-28T13:32:59",
+    "al_dia": true,
+    "resumen": [
+      {
+        "Documento": "Asistencia",
+        "Filas": "1077",
+        "Personas_que_faltan": "0",
+        "Paginas_sospechosas": "0",
+        "Huecos_en_correlativo": "4",
+        "Filas_por_persona": "0"
+      },
+      {
+        "Documento": "Control academico",
+        "Filas": "1077",
+        "Personas_que_faltan": "0",
+        "Paginas_sospechosas": "0",
+        "Huecos_en_correlativo": "4",
+        "Filas_por_persona": "0"
+      },
+      "... 3 mas (recortado)"
+    ],
+    "avisos": [
+      {
+        "DOCUMENTO": "Asistencia",
+        "DONDE": "página 102",
+        "GRUPO": "",
+        "ESPERADAS": "33",
+        "EXTRAIDAS": "31",
+        "FALTAN": "2",
+        "QUE_PASA": "hueco en el correlativo No (puede ser un No mal leído, no una fila perdida): 3007, 3008"
+      },
+      {
+        "DOCUMENTO": "Asistencia",
+        "DONDE": "página 62",
+        "GRUPO": "",
+        "ESPERADAS": "35",
+        "EXTRAIDAS": "34",
+        "FALTAN": "1",
+        "QUE_PASA": "hueco en el correlativo No (puede ser un No mal leído, no una fila perdida): 2630"
+      },
+      "... 12 mas (recortado)"
+    ]
+  },
+  "/cortes/{id}/carga": {
+    "disponible": true,
+    "cargado": true,
+    "id_corte": 1,
+    "cohorte_nombre": null,
+    "bimestre": null,
+    "pago": null,
+    "anio_pago": null,
+    "estatus": "extraido",
+    "cuando": "2026-10-28T19:46:34",
+    "cuentas": {
+      "notas": 2156,
+      "asistencia": 7539,
+      "incidencias": 38,
+      "documentos": 7
+    }
+  },
+  "/docentes/{codigo}": {
+    "docente": {
+      "codigo_padep": "00000000000",
+      "cui": "0000000000000",
+      "dpi": null,
+      "nombre": "Apellido Apellido Nombre Nombre",
+      "sexo": "F",
+      "fecha_nacimiento": null,
+      "nivel_educativo": null,
+      "municipio": "Retalhuleu",
+      "departamento": "Retalhuleu"
+    },
+    "inscripciones": [
+      {
+        "unidad": "digecade",
+        "cohorte": "11",
+        "cohorte_nombre": null,
+        "carrera": "35",
+        "carrera_nombre": "Profesorado de educacion preprimaria intercultural",
+        "correlativo": 2978,
+        "estatus_registro": "inscrito",
+        "estatus_academico": "activo",
+        "resultado_admision": "aprobado",
+        "laboral": {
+          "escalafon": "B",
+          "jornada": "Matutina",
+          "partida": "0000-00000000000-00-0000-0000-00-00-00-000-000-000-000-00000",
+          "escuela": null,
+          "codigo_escuela": null
+        },
+        "notas": [
+          {
+            "cohorte": "11",
+            "trimestre": 6,
+            "corte": 1,
+            "bimestre": null,
+            "asignatura_codigo": "2026.00",
+            "asignatura": "Área de comunicación y lenguaje y su aprendizaje",
+            "seccion": "A",
+            "catedratico": "Apellido Apellido Nombre Nombre",
+            "sede": "Instituto Carlos Dubón",
+            "sede_municipio": "Retalhuleu",
+            "sede_departamento": "Retalhuleu",
+            "zona": 66,
+            "examen_final": 29,
+            "nota_final": 95,
+            "estado": "APROBADO",
+            "observaciones": "APROBADO",
+            "cuadra": 1,
+            "pagina_origen": 262
+          },
+          {
+            "cohorte": "11",
+            "trimestre": 6,
+            "corte": 1,
+            "bimestre": null,
+            "asignatura_codigo": "1012.35",
+            "asignatura": "Factores asociados a la calidad y aprendizaje de la primera infancia",
+            "seccion": "A",
+            "catedratico": "Apellido Apellido Nombre Nombre",
+            "sede": "Instituto Carlos Dubón",
+            "sede_municipio": "Retalhuleu",
+            "sede_departamento": "Retalhuleu",
+            "zona": 63,
+            "examen_final": 28,
+            "nota_final": 91,
+            "estado": "APROBADO",
+            "observaciones": "APROBADO",
+            "cuadra": 1,
+            "pagina_origen": 264
+          }
+        ],
+        "asistencia": [
+          {
+            "cohorte": "11",
+            "trimestre": 6,
+            "corte": 1,
+            "bimestre": null,
+            "sesiones": [
+              {
+                "numero": 1,
+                "fecha": null,
+                "presente": true
+              },
+              {
+                "numero": 2,
+                "fecha": null,
+                "presente": true
+              },
+              "... 5 mas (recortado)"
+            ],
+            "presentes": 6,
+            "total_declarado": 6,
+            "cuadra": true,
+            "porcentaje": 85.7,
+            "pagina_origen": 102
+          }
+        ],
+        "historial": [],
+        "graduacion": null
+      }
+    ],
+    "nomina": [
+      {
+        "unidad": "digecade",
+        "cohorte": "11",
+        "trimestre": 6,
+        "corte": 1,
+        "numero_pago": null,
+        "anio_pago": null,
+        "carrera": "35",
+        "correlativo": 2978,
+        "departamento": "Retalhuleu",
+        "municipio": "Retalhuleu",
+        "escalafon": "B",
+        "jornada": "Matutina",
+        "partida": "0000-00000000000-00-0000-0000-00-00-00-000-000-000-000-00000",
+        "codigo_escuela": "0000000000",
+        "fuente": "DIGECADE"
+      }
+    ],
+    "incidencias": []
+  }
+}
