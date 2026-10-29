@@ -13,10 +13,12 @@ Vue :5173  ──►  FastAPI :8000  ──►  MySQL
    /api/cortes      /cortes
 ```
 
-Todas las llamadas van a `/api/<ruta>`. El proxy —Vite en desarrollo
-(`vite.config.js`), el nginx de la imagen en el servidor (`nginx.conf`)— **quita
-`/api`** y lo manda a la API. Así el navegador ve un solo origen y
-`VITE_API_URL` se queda vacío.
+Todas las llamadas van a `/api/<ruta>`. En desarrollo el proxy de Vite
+(`vite.config.js`) **quita `/api`** y lo manda a la API, así que `VITE_API_URL`
+se queda vacío. En el servidor la API vive en su propio dominio
+(`api-padepd.mineduc.edu.gt`): la imagen se construye con `VITE_API_URL` y es
+`src/api/cliente.js` quien quita el `/api` y llama directo a la API, que tiene
+que abrir el CORS a ese origen (`PADEP_ORIGENES`).
 
 ## Levantarlo
 

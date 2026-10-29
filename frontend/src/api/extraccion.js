@@ -5,9 +5,9 @@ import { pide, pideTexto, encola, abreEnPestana, descarga, descargaPost } from '
  * medio: el login tambien es suyo.
  *
  * Las rutas son las mismas del contrato —`frontend/openapi.json`, regenerado
- * del codigo de la API—, con `/api` delante. Ese prefijo lo quita el proxy (el
- * de Vite en desarrollo, el nginx de la imagen en el servidor): la API sirve
- * `/cortes`, el navegador pide `/api/cortes`.
+ * del codigo de la API—, con `/api` delante. La API sirve `/cortes`: en
+ * desarrollo el prefijo lo quita el proxy de Vite y en el servidor cliente.js
+ * (con VITE_API_URL, la API en su propio dominio).
  */
 const RAIZ = '/api'
 

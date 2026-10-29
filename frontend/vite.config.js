@@ -11,7 +11,7 @@ export default defineConfig({
     // Con el proxy el navegador ve un solo origen y no hace falta CORS en
     // desarrollo, asi que VITE_API_URL se queda vacio y las llamadas siguen
     // siendo relativas. /api/* va a la API de PADEP (FastAPI, :8000) sin el
-    // prefijo, igual que hace el nginx de la imagen en el servidor.
+    // prefijo, igual que hace cliente.js en el servidor (con VITE_API_URL).
     proxy: {
       '/api': {
         // PADEP_API para apuntar a otra instancia (otro puerto) sin tocar esto.

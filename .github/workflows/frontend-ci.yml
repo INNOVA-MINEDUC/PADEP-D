@@ -1,0 +1,232 @@
+# Pipeline del frontend, mismo esquema que DIGIKAL:
+#   Semgrep -> build -> Trivy (reporte + bloqueo) -> push a GHCR -> deploy SSH
+#
+#   development -> development-latest -> servidor DEV
+#   main        -> production-latest  -> servidor PROD
+#
+# La API vive en otro servidor/dominio (api-padepd.mineduc.edu.gt). Vite
+# INCRUSTA su URL en el bundle al construir, asi que entra como build-arg y
+# hay una imagen por ambiente. Sin ella el bundle llamaria a /api del propio
+# dominio del frontend, donde no hay API: por eso el pipeline falla si falta.
+#
+# Secrets que hay que crear en el repo (Settings -> Secrets -> Actions):
+#   VITE_API_URL_DEV, VITE_API_URL_PROD   (ej: https://api-padepd.mineduc.edu.gt)
+#   DEV_SERVER_IP, DEV_SERVER_USER, DEV_SERVER_PASSWORD, DEV_SERVER_PORT
+#   PROD_SERVER_IP, PROD_SERVER_USER, PROD_SERVER_PASSWORD, PROD_SERVER_PORT
+# GITHUB_TOKEN no se crea: lo pone GitHub.
+
+name: Frontend Docker CI/CD
+
+on:
+  push:
+    branches: [ "main", "development" ]
+    paths:
+      - "frontend/**"
+      - "!frontend/**/*.md"
+      - "docker-compose.yml"
+      - ".github/workflows/frontend-ci.yml"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  # GHCR exige minusculas y el repo es INNOVA-MINEDUC/PADEP-D.
+  IMAGE_NAME: innova-mineduc/padep-d-frontend
+  SERVER_DIR: /opt/public_html/PADEPD-Frontend
+
+jobs:
+  analisis-estatico:
+    name: Análisis de Código (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar y Ejecutar Semgrep
+        run: |
+          python3 -m pip install semgrep
+          semgrep scan --config="p/default" --sarif -o semgrep.sarif || true
+
+      - name: Subir Reporte Semgrep a GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  build-and-push:
+    needs: analisis-estatico
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Determina el ambiente según la rama que disparó el workflow
+      - name: Set environment config
+        id: config
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_NAME" = "main" ]; then
+            echo "ENV_NAME=production" >> $GITHUB_OUTPUT
+            echo "API_URL=${{ secrets.VITE_API_URL_PROD }}" >> $GITHUB_OUTPUT
+          else
+            echo "ENV_NAME=development" >> $GITHUB_OUTPUT
+            echo "API_URL=${{ secrets.VITE_API_URL_DEV }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verificar que la URL del API está configurada
+        run: |
+          if [ -z "${{ steps.config.outputs.API_URL }}" ]; then
+            echo "::error::Falta el secret VITE_API_URL_PROD / VITE_API_URL_DEV. Sin él el bundle llama a /api del dominio del frontend, donde no hay API."
+            exit 1
+          fi
+
+      - name: Generate custom identifiers
+        id: vars
+        run: |
+          echo "TS=$(date +'%Y%m%d_%H%M')" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Tag por ambiente (ej: production-latest, development-latest)
+            type=raw,value=${{ steps.config.outputs.ENV_NAME }}-latest
+
+            # Tag detallado con timestamp y SHA
+            type=raw,value=${{ steps.config.outputs.ENV_NAME }}-${{ steps.vars.outputs.TS }}-${{ steps.vars.outputs.SHORT_SHA }}
+
+            # Tag estándar por Git SHA
+            type=sha,format=short
+
+      - name: Construir imagen local para escaneo
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          load: true
+          build-args: |
+            VITE_API_URL=${{ steps.config.outputs.API_URL }}
+          tags: local-scan:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Ejecutar Trivy (Generar Reporte de Auditoría)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-scan:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          # Aquí no ponemos exit-code para asegurar que genere el reporte completo
+
+      - name: Subir Reporte Trivy a GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+      - name: Ejecutar Trivy (Control de Calidad - Bloqueo)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-scan:latest'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_URL=${{ steps.config.outputs.API_URL }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+      - name: Workflow Summary
+        run: |
+          echo "### Imagen publicada" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ambiente:** ${{ steps.config.outputs.ENV_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ steps.config.outputs.ENV_NAME }}-${{ steps.vars.outputs.TS }}-${{ steps.vars.outputs.SHORT_SHA }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry:** ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+
+  # `docker image prune -f` y no `-a`: el servidor tiene otros stacks (la API,
+  # MySQL, adminer, metabase). Con -a se borraria la imagen de cualquiera que
+  # este parado en ese momento. Sin -a solo caen las huerfanas, que es justo la
+  # imagen vieja de PADEP tras el pull (pierde el tag *-latest).
+  deploy-dev:
+    name: Deploy to Development Server
+    needs: build-and-push
+    if: github.ref_name == 'development'
+    runs-on: ubuntu-latest
+    concurrency: deploy-development
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Execute Remote SSH Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_SERVER_IP }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          password: ${{ secrets.DEV_SERVER_PASSWORD }}
+          port: ${{ secrets.DEV_SERVER_PORT }}
+          script: |
+            set -e
+            cd ${{ env.SERVER_DIR }}
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
+
+  deploy-prod:
+    name: Deploy to Production Server
+    needs: build-and-push
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    concurrency: deploy-production
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Execute Remote SSH Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_IP }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          port: ${{ secrets.PROD_SERVER_PORT }}
+          script: |
+            set -e
+            cd ${{ env.SERVER_DIR }}
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull
+            docker compose up -d
+            docker image prune -f

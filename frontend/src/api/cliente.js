@@ -10,7 +10,16 @@
  * Sin `credentials: 'include'`: la sesion es el Bearer, no una cookie.
  */
 
-const BASE = import.meta.env.VITE_API_URL ?? ''
+// Las rutas llevan `/api` delante. Sin VITE_API_URL (desarrollo) van relativas
+// y el proxy de Vite quita el prefijo. Con VITE_API_URL la API vive en otro
+// dominio (api-padepd...) y sirve sus rutas SIN prefijo, asi que se quita aqui:
+// /api/cortes -> https://api-padepd.mineduc.edu.gt/cortes
+const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+function destino(ruta) {
+  if (!BASE) return ruta
+  const sin = ruta.replace(/^\/api(?=[/?]|$)/, '')
+  return BASE + (sin.startsWith('/') ? sin : `/${sin}`)
+}
 
 export class ErrorApi extends Error {
   constructor(mensaje, estado) {
@@ -45,7 +54,7 @@ export function cuandoExpire(fn) { alExpirar = fn }
 async function crudo(ruta, opciones = {}) {
   const cabeceras = { ...(opciones.headers || {}) }
   if (token) cabeceras.Authorization = `Bearer ${token}`
-  const r = await fetch(`${BASE}${ruta}`, { ...opciones, headers: cabeceras })
+  const r = await fetch(destino(ruta), { ...opciones, headers: cabeceras })
   // Un token caducado a media sesion no puede quedarse callado: se limpia y se
   // avisa a la store, o la pantalla se queda pidiendo datos que nunca llegan.
   if (r.status === 401) { guardaToken(''); alExpirar() }
