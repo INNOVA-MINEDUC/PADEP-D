@@ -1,129 +1,53 @@
 <script setup>
 /**
- * Alta de Cohorte.
+ * Cohortes: darlas de alta en la base y elegir sobre cuál se trabaja.
  *
- * El formulario que hay aquí es el que vivía en la pantalla de Extracción: es
- * el que habla con la API de verdad (`POST /cortes`). El de antes era maqueta
- * —guardaba «COH-2026-01» en memoria y se perdía al recargar—, así que se
- * cambió de sitio el que funciona y se tiró el falso.
+ * Una cohorte es solo código y nombre (`POST /cohortes`), y es lo que necesitan
+ * sus sedes y sus enlaces. Se configura meses antes del primer PDF, así que
+ * aquí no se habla de cortes: el corte —carrera + trimestre, la carpeta donde
+ * van los PDF de un pago— se crea en Extracción, cuando llega ese pago. Antes
+ * esta pantalla creaba cortes y la cohorte salía de ellos: sin un corte en
+ * disco no se podía registrar ni una sede.
  *
- * Un corte se identifica con CUATRO datos: cohorte, carrera, trimestre y corte.
- * De esos, aquí solo se piden tres: el `corte` va fijo en 1 y escondido (ver
- * abajo). El id resultante lo arma el servidor: `digecade-11-car35-t6-c1`.
- *
- * La unidad no se pide aquí: es la de trabajo (la del usuario, o la que el
- * global eligió en la cabecera), y el cliente de API la añade solo.
+ * La unidad no se pide: es la de trabajo, y el cliente de API la añade solo.
  * La tarjeta la enseña para que el global sepa dónde está creando.
  *
- * Crear es idempotente: `POST /cortes` sobre uno que ya existe devuelve su
- * estado en vez de un error, así que pulsar «Crear» encima de uno existente
- * simplemente lo selecciona.
+ * La lista y la elegida viven en el store (`state.cohortes`, `state.cohorte`):
+ * las comparten la barra lateral, el panel de la derecha y Sedes y Enlaces.
  */
-import { ref, computed, onMounted } from 'vue'
+import { ref } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
-import { usaCortes } from '@/composables/usaCortes'
-import { usaCohorte } from '@/composables/usaCohorte'
 import ModuleStepper from '@/components/ModuleStepper.vue'
 import CohorteContext from '@/components/CohorteContext.vue'
 import AvisoError from '@/components/AvisoError.vue'
-import { etiquetaCarrera } from '@/data/carreras'
+import { capital, plural } from '@/utils/format'
 
-const { state, esGlobal, goTo, refrescaCohorte } = usePadep()
-const { lista: cortes, elegido, carga: cargaCortes, elige } = usaCortes()
+const { state, esGlobal, puede, cargaCohortes, eligeCohorte } = usePadep()
 
 const error = ref('')
 const ocupado = ref(false)
-const cargando = ref(true)
+const nueva = ref({ codigo: '', nombre: '' })
 
-// Valores, no placeholders: en gris nadie los escribe y el POST sale con la
-// carrera vacia -> 422. El `corte` va aqui pero no en la pantalla: hoy siempre
-// vale 1, y fijarlo hace que reenviar el formulario reseleccione el corte en
-// vez de crear uno nuevo. NO se calcula con `hermanos.length + 1`: eso crearia
-// un corte 2 vacio cada vez que alguien reenvia el mismo formulario.
-const CORTE_POR_DEFECTO = { cohorte: '11', carrera: '35', trimestre: 6, corte: 1 }
-const nuevo = ref({ ...CORTE_POR_DEFECTO })
-// Salida de emergencia por si algun dia hay dos entregas en el mismo trimestre.
-const corteVisible = ref(false)
+// Puede ver la lista quien ve la pantalla; crear la pide la API
+// (`cohortes.gestionar`) y aquí solo se esconde el formulario.
+const puedeCrear = puede('cohortes.gestionar')
 
-// La cohorte en la BASE (MySQL) es otra cosa que el corte en disco: solo lleva
-// codigo y nombre, y hace falta para registrar sedes y enlaces meses antes de
-// que exista ningun PDF. Nace sola al crear el corte (ver `crea`); la tarjeta
-// solo ofrece el alta a mano como respaldo. `null` = sin respuesta todavia (o
-// MySQL caido): no se ofrece darla de alta sin saber si ya esta.
-const { error: errorBase, ocupado: ocupadoBase, creaCohorte } = usaCohorte()
-const cohortesBase = ref(null)
-const enBase = computed(() => cohortesBase.value?.find(c => c.codigo === state.cohorte.codigo))
+cargaCohortes(state.cohorte.codigo)
 
-// El desplegable de carrera sale del catálogo (`GET /carreras`), no del código.
-// Si la base no responde, el formulario sigue: crear un corte es una carpeta
-// en disco y `POST /cortes` no comprueba la carrera contra MySQL, así que se
-// cambia el desplegable por un campo de solo dígitos. `null` = sin respuesta.
-const carreras = ref(null)
-const sinCatalogo = ref(false)
-api.carreras()
-  .then(l => { carreras.value = l })
-  .catch(() => { sinCatalogo.value = true })
-
-const cargaBase = () => api.cohortes()
-  .then(l => { cohortesBase.value = l })
-  .catch(e => { errorBase.value = e.message })
-
-// Respaldo para cortes creados antes de que la cohorte naciera con ellos, o si
-// la base no respondio entonces. Un 409 («ya existe») tambien acaba bien: al
-// releer, aparece.
-async function altaBase() {
-  await creaCohorte({ codigo: state.cohorte.codigo })
-  await cargaBase()
-}
-
-onMounted(async () => {
-  cargaBase()
-  try {
-    await cargaCortes()
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    cargando.value = false
-  }
-})
-
-async function conError(fn) {
+async function crea() {
   error.value = ''
   ocupado.value = true
   try {
-    await fn()
+    const codigo = nueva.value.codigo.trim()
+    await api.creaCohorte({ codigo, nombre: nueva.value.nombre.trim() })
+    nueva.value = { codigo: '', nombre: '' }
+    await cargaCohortes(codigo)
   } catch (e) {
     error.value = e.message
   } finally {
     ocupado.value = false
   }
-  await cargaCortes().catch(() => {})
-  refrescaCohorte()
-}
-
-const crea = () => conError(async () => {
-  const d = await api.creaCorte({ ...nuevo.value })
-  elige(d.id)
-  // La misma «11» no se pide dos veces: la cohorte en la base nace aqui. Sin
-  // nombre, que lo rellena la primera carga (solo completa lo vacio). Aparte
-  // del corte a proposito: si MySQL falla, el corte ya esta creado y la tarjeta
-  // ofrece reintentar. El 409 es el caso normal —ya existia— y no se ensena.
-  errorBase.value = ''
-  await api.creaCohorte({ codigo: d.cohorte })
-    .catch(e => { if (e.estado !== 409) errorBase.value = e.message })
-  cargaBase()
-  nuevo.value = { ...CORTE_POR_DEFECTO }
-  corteVisible.value = false
-})
-
-// Elegir aquí es lo mismo que elegir en Extracción: las dos pantallas comparten
-// la llave de localStorage, no un estado en memoria.
-const selecciona = (id) => { elige(id); refrescaCohorte() }
-
-const etiqueta = (c) => {
-  const base = `Cohorte ${c.cohorte} · ${etiquetaCarrera(c.carrera)} · trimestre ${c.trimestre}`
-  return c.corte === 1 ? base : `${base} · corte ${c.corte}`
 }
 </script>
 
@@ -132,18 +56,48 @@ const etiqueta = (c) => {
     <ModuleStepper :active-id="1" />
 
     <p class="eyebrow eyebrow--plain">Configuración de Cohorte</p>
-    <h1 class="page-title">Alta de Cohorte</h1>
+    <h1 class="page-title">Cohortes</h1>
     <p class="page-sub">
-      Registrar la entrega de una carrera en un trimestre. Después, en Extracción,
-      se suben sus documentos.
+      Dar de alta la cohorte y elegir sobre cuál se trabaja. Sus sedes y enlaces se
+      registran en los pasos siguientes; los PDF de cada pago se suben después, en
+      Extracción.
     </p>
 
     <AvisoError :mensaje="error" />
+    <AvisoError :mensaje="state.errorCohortes" />
 
     <div class="grid-main">
       <div class="stack">
         <section class="card card--flat">
-          <div class="card__head">Nueva alta</div>
+          <div class="card__head">Cohortes de la unidad</div>
+          <div class="card__body">
+            <p v-if="state.cohortes === null && !state.errorCohortes" class="nota">Consultando…</p>
+            <p v-else-if="state.cohortes && !state.cohortes.length" class="nota">
+              Todavía no hay ninguna.{{ puedeCrear ? ' Crea la primera abajo.' : '' }}
+            </p>
+            <ul v-else-if="state.cohortes" class="altas">
+              <li v-for="c in state.cohortes" :key="c.codigo" class="altas__item">
+                <button
+                  class="altas__btn"
+                  :class="{ 'is-elegida': c.codigo === state.cohorte.codigo }"
+                  :aria-pressed="c.codigo === state.cohorte.codigo"
+                  @click="eligeCohorte(c.codigo)">
+                  <span class="altas__etiqueta">
+                    Cohorte {{ c.codigo }}<template v-if="c.nombre"> · {{ c.nombre }}</template>
+                  </span>
+                  <span class="altas__id">
+                    {{ capital(c.estatus) }} · {{ plural(c.sedes, 'sede', 'sedes') }} ·
+                    {{ c.enlaces_asignados }} con enlace
+                  </span>
+                </button>
+                <span v-if="c.codigo === state.cohorte.codigo" class="altas__marca">En uso</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section v-if="puedeCrear" class="card card--flat">
+          <div class="card__head">Nueva cohorte</div>
           <div class="card__body">
             <p v-if="esGlobal" class="nota">
               Se crea en la unidad <strong class="mono">{{ state.unidad || '—' }}</strong>;
@@ -151,101 +105,20 @@ const etiqueta = (c) => {
             </p>
             <form class="fila" @submit.prevent="crea">
               <label class="field">
-                <span class="field__label">Cohorte</span>
-                <input v-model="nuevo.cohorte" class="input" required>
+                <span class="field__label">Código</span>
+                <input v-model="nueva.codigo" class="input mono" required inputmode="numeric"
+                       pattern="[0-9]+" title="Solo dígitos" placeholder="11">
               </label>
-              <!-- Desplegable y no texto libre: la carrera es justo donde se
-                   vuelve a colar el error de confundirla con la cohorte. Las
-                   dos son de la Onceava y se separan por este codigo. Texto
-                   solo si el catalogo no se pudo leer. -->
-              <label v-if="sinCatalogo" class="field">
-                <span class="field__label">Carrera (código)</span>
-                <input v-model.trim="nuevo.carrera" class="input mono" required
-                       inputmode="numeric" pattern="[0-9]+" title="Solo dígitos">
-              </label>
-              <label v-else class="field">
-                <span class="field__label">Carrera</span>
-                <select v-model="nuevo.carrera" class="select" required :disabled="!carreras">
-                  <option v-if="!carreras" :value="nuevo.carrera">Consultando…</option>
-                  <option v-for="c in carreras" :key="c.codigo" :value="c.codigo">
-                    {{ c.codigo }} — {{ c.nombre }}
-                  </option>
-                </select>
-              </label>
-              <!-- El tope de 12 solo ataja el numero absurdo: no dice cuantos
-                   trimestres dura una cohorte, que no se sabe. -->
               <label class="field">
-                <span class="field__label">Trimestre (1-12)</span>
-                <input v-model.number="nuevo.trimestre" class="input" type="number" min="1" max="12" required>
-              </label>
-              <!-- Normalmente no esta: hoy el corte siempre vale 1 y quien usa
-                   la pantalla no sabe que es. Se revela con el enlace de abajo. -->
-              <label v-if="corteVisible" class="field">
-                <span class="field__label">Corte</span>
-                <input v-model.number="nuevo.corte" class="input" type="number" min="1" required>
+                <span class="field__label">Nombre (opcional)</span>
+                <input v-model="nueva.nombre" class="input" placeholder="Onceava">
               </label>
               <button class="btn btn--primary" type="submit"
-                      :disabled="ocupado || (!carreras && !sinCatalogo) || (esGlobal && !state.unidad)">Crear</button>
+                      :disabled="ocupado || (esGlobal && !state.unidad)">Crear</button>
             </form>
-
-            <p v-if="sinCatalogo" class="nota nota--aviso">
-              No se pudo leer el catálogo; escribe el código de la carrera.
-            </p>
-            <p class="nota nota--suelta nota--enlaces">
-              <button type="button" class="btn-link" @click="goTo(4)">
-                ¿No está la carrera? Regístrala →
-              </button>
-              <button v-if="!corteVisible" type="button" class="btn-link" @click="corteVisible = true">
-                Otra entrega en este trimestre →
-              </button>
-            </p>
-          </div>
-        </section>
-
-        <section class="card card--flat">
-          <div class="card__head">Altas existentes</div>
-          <div class="card__body">
-            <p v-if="cargando" class="nota">Consultando…</p>
-            <p v-else-if="!cortes.length" class="nota">
-              Todavía no hay ninguna. Crea la primera arriba.
-            </p>
-            <ul v-else class="altas">
-              <li v-for="c in cortes" :key="c.id" class="altas__item">
-                <button
-                  class="altas__btn"
-                  :class="{ 'is-elegida': c.id === elegido }"
-                  @click="selecciona(c.id)">
-                  <span class="altas__etiqueta">{{ etiqueta(c) }}</span>
-                  <span class="altas__id mono">{{ c.id }}</span>
-                </button>
-                <span v-if="c.id === elegido" class="altas__marca">En uso</span>
-              </li>
-            </ul>
-
-            <p v-if="cortes.length" class="nota nota--suelta">
-              La marcada «En uso» es sobre la que trabajan Extracción y el resto
-              de pantallas.
-              <button type="button" class="btn-link" @click="goTo(15)">
-                Ir a Extracción →
-              </button>
-            </p>
-          </div>
-        </section>
-
-        <section v-if="state.cohorte.codigo" class="card card--flat">
-          <div class="card__head">Cohorte {{ state.cohorte.codigo }} en la base de datos</div>
-          <div class="card__body">
-            <AvisoError :mensaje="errorBase" />
-            <p v-if="enBase" class="nota">
-              {{ enBase.nombre || 'Sin nombre' }} · {{ enBase.sedes }} sedes ·
-              {{ enBase.enlaces_asignados }} con enlace.
-              <button type="button" class="btn-link" @click="goTo(2)">Configurar sedes →</button>
-            </p>
-            <p v-else-if="cohortesBase" class="nota">
-              Todavía no está: hace falta para registrar sus sedes y enlaces.
-              <button type="button" class="btn-link" :disabled="ocupadoBase" @click="altaBase">
-                Dar de alta en la base →
-              </button>
+            <p class="nota">
+              El nombre puede quedar en blanco: la primera carga a la base lo toma de la
+              columna <span class="mono">COHORTE</span> de la nómina.
             </p>
           </div>
         </section>
@@ -268,9 +141,6 @@ const etiqueta = (c) => {
 .fila .field { flex: 1 1 150px; margin: 0; }
 
 .nota { margin: 0; font-size: 13px; color: var(--muted); }
-.nota--suelta { margin-top: 2px; }
-.nota--enlaces { display: flex; flex-wrap: wrap; gap: 8px 20px; }
-.nota--aviso { color: var(--warning); }
 
 .altas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .altas__item { display: flex; align-items: center; gap: 10px; }

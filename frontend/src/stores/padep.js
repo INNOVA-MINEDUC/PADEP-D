@@ -1,14 +1,13 @@
 import { reactive, computed } from 'vue'
-import { NAV } from '@/data/catalog'
+import { NAV, MOD1_STEPS } from '@/data/catalog'
 import { entra, yo, sal, cambiaPassword } from '@/api/auth'
 import { api, contexto } from '@/api/extraccion'
 import { guardaToken, hayToken, cuandoExpire } from '@/api/cliente'
-import { fijaCatalogo, reiniciaCatalogo } from '@/data/carreras'
+import { fijaCatalogo, reiniciaCatalogo, enBase } from '@/data/carreras'
 
 /**
- * Store compartido de la aplicación.
- * Sustituye al `state` + `renderVals()` de la clase DCLogic del prototipo:
- * el estado vive aquí y cada pantalla deriva lo suyo con `computed`.
+ * Store compartido de la aplicación: el estado vive aquí y cada pantalla
+ * deriva lo suyo con `computed`.
  *
  * Es un módulo singleton; si el proyecto crece, migrar a Pinia es directo
  * (mismo shape de state/getters/actions).
@@ -49,11 +48,16 @@ const state = reactive({
   menuMovil: false,
 
   // --- Módulo 1: cohorte ---
-  // Ya no es un borrador que se teclea: sale del corte elegido en la API de
-  // extracción, que es donde vive el dato de verdad. Vacío mientras no haya
-  // ninguno —la API puede estar caída o no haber cortes todavía—, y las
-  // pantallas que lo enseñan pintan una raya en vez de un código inventado.
-  cohorte: { unidad: '', codigo: '', carrera: '', trimestre: null, id: '' },
+  // La cohorte de trabajo, de la base (`GET /cohortes`): {codigo, nombre,
+  // sedes, enlaces_asignados}. NO sale del corte: la cohorte se configura
+  // —sedes, enlaces— meses antes de que exista ningún PDF. Se elige en la
+  // pantalla Cohortes; al elegir un corte de otra cohorte, la sigue (ver
+  // `sigueCorte`). Vacía si no hay ninguna o MySQL no responde.
+  cohorte: { codigo: '' },
+  // Las de la unidad de trabajo. null = sin respuesta todavía (o MySQL caído,
+  // con el motivo en `errorCohortes`): no es lo mismo que «no hay ninguna».
+  cohortes: null,
+  errorCohortes: '',
 
   // --- Unidad ---
   // La unidad (organización) sobre la que se trabaja. Un usuario de unidad no
@@ -70,9 +74,6 @@ const state = reactive({
   // cuenta sobre ellas en las tres.
   sedes: [],    // SedeDeCohorte[] — todas, cada una con su `enlace` o null
   enlaces: [],  // Enlace[] — las personas, para el desplegable de asignar
-  // ¿Está la cohorte en MySQL? El corte en disco no basta para registrar sedes.
-  // true/false según responda `/sedes` (404 = no está); null = no se sabe (503).
-  enBase: null,
   // Código con el que el catálogo de carreras abre el formulario de alta ya
   // escrito: lo deja Extracción cuando una carga falla por carrera sin
   // registrar. La pantalla lo consume (y lo vacía) al montarse.
@@ -81,8 +82,8 @@ const state = reactive({
   // --- Listados y filtros (módulo 2, contra `GET /docentes`) ---
   // Viven aquí y no en la pantalla para sobrevivir a la navegación, y porque el
   // buscador de la cabecera escribe en `s9Query`. '' / null = sin filtro.
-  s8Carrera: '',
   s9Query: '',
+  s9Cohorte: '',
   s9Dep: null,
   s9Mun: null,
   s9Carrera: '',
@@ -169,19 +170,18 @@ const crumbScreen = computed(
 
 const enlacesCount = computed(() => state.sedes.filter(s => s.enlace).length)
 
-/** Checklist de avance del módulo 1. */
+/** Checklist de avance del módulo 1, en el orden de `MOD1_STEPS`. */
 const checklist = computed(() => [
-  // Hecho cuando la cohorte está en la base, no solo el corte en disco: sin
-  // ella, Sedes contesta 404.
-  { label: 'Alta de cohorte',   done: state.enBase === true },
-  { label: 'Sedes registradas', done: state.sedes.length > 0 },
-  { label: 'Enlaces asignados', done: state.sedes.length > 0 && enlacesCount.value >= state.sedes.length },
+  { label: 'Carreras registradas', done: !!enBase.codigos?.length },
+  { label: 'Cohorte elegida',      done: !!state.cohorte.codigo },
+  { label: 'Sedes registradas',    done: state.sedes.length > 0 },
+  { label: 'Enlaces asignados',    done: state.sedes.length > 0 && enlacesCount.value >= state.sedes.length },
 ])
 
-/** Primer paso pendiente del módulo 1 (o null si está completo). */
+/** Pantalla del primer paso pendiente del módulo 1 (o null si está completo). */
 const nextStepId = computed(() => {
   const i = checklist.value.findIndex(c => !c.done)
-  return i === -1 ? null : i + 1
+  return i === -1 ? null : MOD1_STEPS[i].id
 })
 
 /* =========================================================
@@ -189,6 +189,7 @@ const nextStepId = computed(() => {
    ========================================================= */
 
 const LLAVE_UNIDAD = 'padep.unidad'
+const LLAVE_COHORTE = 'padep.cohorte'
 
 const actions = {
   // --- Sesión ---
@@ -253,13 +254,14 @@ const actions = {
     state.profileOpen = false
     state.menuMovil = false
     state.cambioPassword = false
-    state.cohorte = { unidad: '', codigo: '', carrera: '', trimestre: null, id: '' }
+    state.cohorte = { codigo: '' }
+    state.cohortes = null
+    state.errorCohortes = ''
     state.unidad = ''
     state.unidades = []
     contexto.unidad = ''
     state.sedes = []
     state.enlaces = []
-    state.enBase = null
   },
   /**
    * Cambia la contraseña propia. La API devuelve un token nuevo (el cliente ya
@@ -344,7 +346,7 @@ const actions = {
       try { localStorage.setItem(LLAVE_UNIDAD, codigo) } catch (e) { /* sin almacenamiento */ }
     }
     reiniciaCatalogo(codigo)
-    actions.refrescaCohorte()
+    actions.cargaCohortes()
     actions.cargaCarreras()
   },
 
@@ -359,44 +361,69 @@ const actions = {
 
   // --- Cohorte ---
   /**
-   * Relee la cohorte a partir del corte elegido. La comparten el sidebar y las
-   * pantallas de consulta, que no piden cortes por su cuenta, así que se llama
-   * al arrancar y cada vez que S01 crea o cambia el corte.
+   * Lee las cohortes de la base y fija la de trabajo: `preferida` si se pide
+   * (la recién creada), si no la última elegida en este navegador, si no la
+   * del corte elegido, si no la primera. Se llama al arrancar, al cambiar de
+   * unidad y tras crear una.
    *
-   * Falla en silencio a propósito: la API de extracción puede estar caída y eso
-   * no debe tumbar el resto de la aplicación —solo deja la cohorte vacía—.
-   *
-   * `elegido` se lee de localStorage, la misma llave que usa `usaCortes`: no
-   * hay un estado compartido entre pantallas, se comparte la llave.
+   * No lanza: con MySQL caído deja la lista en null y el motivo en
+   * `errorCohortes`, que la pantalla Cohortes enseña. El resto de la
+   * aplicación —lo que sale del disco— sigue funcionando.
    */
-  async refrescaCohorte() {
+  async cargaCohortes(preferida = '') {
     try {
-      const cortes = await api.cortes()
-      const id = localStorage.getItem('padep.corte')
-      const c = cortes.find(x => x.id === id) ?? cortes[0]
-      state.cohorte = c
-        ? { unidad: c.unidad, codigo: c.cohorte, carrera: c.carrera, trimestre: c.trimestre, id: c.id }
-        : { unidad: '', codigo: '', carrera: '', trimestre: null, id: '' }
+      state.cohortes = await api.cohortes()
+      state.errorCohortes = ''
     } catch (e) {
-      state.cohorte = { unidad: '', codigo: '', carrera: '', trimestre: null, id: '' }
+      state.cohortes = null
+      state.errorCohortes = e.message
     }
+    const lista = state.cohortes ?? []
+    let guardada = ''
+    let delCorte = ''
+    try {
+      guardada = localStorage.getItem(LLAVE_COHORTE) || ''
+      // `digecade-11-car35-t6-c1`: la unidad no lleva guion, así que la
+      // cohorte es siempre el segundo tramo.
+      delCorte = (localStorage.getItem('padep.corte') || '').split('-')[1] || ''
+    } catch (e) { /* sin almacenamiento */ }
+    const c = [preferida, guardada, delCorte].map(k => lista.find(x => x.codigo === k)).find(Boolean)
+      ?? lista[0]
+    actions.fijaCohorte(c)
+  },
+  /** Elige la cohorte de trabajo por su código (pantalla Cohortes). */
+  eligeCohorte(codigo) {
+    const c = (state.cohortes ?? []).find(x => x.codigo === codigo)
+    if (c) actions.fijaCohorte(c)
+  },
+  /**
+   * Al elegir un corte de otra cohorte, la cohorte de trabajo lo sigue: si no,
+   * la barra lateral diría «Cohorte 11» con un corte de la 12 en la cabecera.
+   * Si esa cohorte no está en la base (corte creado con MySQL caído), no se
+   * toca: no hay sedes que enseñar de ella.
+   */
+  sigueCorte(corte) {
+    if (corte && corte.cohorte !== state.cohorte.codigo) actions.eligeCohorte(corte.cohorte)
+  },
+  fijaCohorte(c) {
+    state.cohorte = c ? { ...c } : { codigo: '' }
+    try {
+      if (c) localStorage.setItem(LLAVE_COHORTE, c.codigo)
+    } catch (e) { /* sin almacenamiento */ }
     actions.cargaConfiguracion().catch(() => {})
   },
   /**
    * Relee sedes y personas de la base para la cohorte elegida. Lanza el error
-   * —404 si la cohorte no está en MySQL, 503 si MySQL no responde— para que la
-   * pantalla lo enseñe, y antes vacía las listas: unas sedes viejas serían
-   * mentira.
+   * —503 si MySQL no responde— para que la pantalla lo enseñe, y antes vacía
+   * las listas: unas sedes viejas serían mentira.
    */
   async cargaConfiguracion() {
     const c = state.cohorte.codigo
     try {
       [state.sedes, state.enlaces] = c ? await Promise.all([api.sedes(c), api.enlaces()]) : [[], []]
-      state.enBase = c ? true : null
     } catch (e) {
       state.sedes = []
       state.enlaces = []
-      state.enBase = e.estado === 404 ? false : null
       throw e
     }
   },
@@ -433,6 +460,7 @@ const actions = {
   volverDeFicha() { actions.goTo(state.fichaOrigen ?? 9) },
   clearFiltrosDocentes() {
     state.s9Query = ''
+    state.s9Cohorte = ''
     state.s9Dep = null
     state.s9Mun = null
     state.s9Carrera = ''

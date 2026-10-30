@@ -1,10 +1,22 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { usePadep } from '@/stores/padep'
+import { usaCortes, nombreCorte } from '@/composables/usaCortes'
 import { iniciales } from '@/utils/format'
 import Icono from '@/components/Icono.vue'
 
 const { state, esGlobal, fijaUnidad, toggleProfile, goHome, logout, submitTopSearch, abreCambioPassword, toggleMenuMovil } = usePadep()
+
+// El corte sobre el que trabajan Extracción, Completar a mano y Comparación.
+// Se elige aquí y solo aquí, como la unidad: antes cada pantalla traía su
+// selector y elegir en una no se veía en las otras. Se relee al cambiar de
+// unidad (los cortes son de una unidad). En silencio si falla: sin la API de
+// extracción, el resto sigue y el selector simplemente no sale.
+const { lista: cortes, elegido: corteElegido, carga: cargaCortes, elige: eligeCorte } = usaCortes()
+watch(() => state.unidad, () => cargaCortes().catch(() => {}), { immediate: true })
+// La etiqueta larga no cabe en la cabecera: va corta y la larga en el `title`.
+const corto = c => `Cohorte ${c.cohorte} · car. ${c.carrera} · trim. ${c.trimestre}${c.corte === 1 ? '' : ` · c${c.corte}`}`
+const corteActual = computed(() => cortes.value.find(c => c.id === corteElegido.value))
 
 // La unidad sobre la que se trabaja. El de una unidad solo la ve (no elige);
 // el global la cambia aquí y toda la aplicación pasa a operar sobre ella.
@@ -72,6 +84,15 @@ const usuario = computed(() => ({
       <span class="topbar__unidad-rotulo">Unidad</span>
       <span class="topbar__unidad-nombre">{{ nombreUnidad }}</span>
     </span>
+
+    <label v-if="cortes.length" class="topbar__unidad"
+           :title="corteActual ? nombreCorte(corteActual) : 'Corte sobre el que se trabaja'">
+      <span class="topbar__unidad-rotulo">Corte</span>
+      <select :value="corteElegido" aria-label="Corte sobre el que se trabaja"
+              class="topbar__corte" @change="eligeCorte($event.target.value)">
+        <option v-for="c in cortes" :key="c.id" :value="c.id">{{ corto(c) }}</option>
+      </select>
+    </label>
 
     <button class="topbar__home" @click="goHome">
       <Icono nombre="inicio" :tam="17" /><span class="topbar__home-text">Inicio</span>
@@ -170,6 +191,7 @@ const usuario = computed(() => ({
   font-family: inherit; outline: none; max-width: 200px;
 }
 .topbar__unidad select option { color: var(--ink); }
+.topbar__unidad select.topbar__corte { max-width: 260px; }
 
 /* Estrecho: menú de hamburguesa, sin el buscador ni el texto del perfil (el
    buscador sigue en S09). Antes la cabecera medía 554 px en un móvil de 390. */
@@ -180,7 +202,7 @@ const usuario = computed(() => ({
 @media (max-width: 720px) {
   .topbar__search, .topbar__divider, .topbar__home-text, .topbar__identity, .topbar__chevron { display: none; }
   .topbar__unidad-rotulo { display: none; }
-  .topbar__unidad select { max-width: 120px; }
+  .topbar__unidad select, .topbar__unidad select.topbar__corte { max-width: 120px; }
   .topbar__sub { display: none; }
   .topbar__profile-btn { padding: 3px; }
 }

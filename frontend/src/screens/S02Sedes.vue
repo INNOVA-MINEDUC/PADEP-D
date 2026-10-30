@@ -8,7 +8,7 @@ import CohorteContext from '@/components/CohorteContext.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import Icono from '@/components/Icono.vue'
 
-const { state } = usePadep()
+const { state, goTo } = usePadep()
 const { error, aviso, ocupado, carga, agregaSede, quitaSede } = usaCohorte()
 
 const departamentos = ref([])
@@ -42,6 +42,10 @@ async function agrega() {
 
     <AvisoError :mensaje="error" />
     <AvisoError :mensaje="aviso" tono="nota" />
+    <p v-if="!state.cohorte.codigo" class="sin-cohorte">
+      No hay ninguna cohorte elegida: las sedes son de una cohorte.
+      <button type="button" class="btn-link" @click="goTo(1)">Elegir o crear la cohorte →</button>
+    </p>
 
     <div class="grid-main">
       <div>
@@ -119,6 +123,7 @@ async function agrega() {
 </template>
 
 <style scoped>
+.sin-cohorte { margin: 0 0 16px; font-size: 13px; color: var(--warning); }
 .picker { padding: 22px; margin-bottom: 22px; }
 .picker .grid-auto { margin-bottom: 16px; }
 .picker__label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }

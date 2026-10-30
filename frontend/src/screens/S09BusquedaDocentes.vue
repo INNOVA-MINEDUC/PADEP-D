@@ -13,12 +13,14 @@ import Icono from '@/components/Icono.vue'
  * Búsqueda sobre MySQL (`GET /docentes`). Filtra el servidor, no el
  * navegador: son más de mil inscripciones y llegan de 50 en 50.
  *
- * Busca en todas las cohortes —la columna Cohorte lo dice—. El texto vale para
- * nombre (sin tildes ni mayúsculas), principio del código PADEP o CUI exacto.
+ * Busca en todas las cohortes salvo que se filtre una —la columna Cohorte lo
+ * dice—. El texto vale para nombre (sin tildes ni mayúsculas), principio del
+ * código PADEP o CUI exacto.
  *
- * Es el único buscador de docentes: una fila abre su ficha (S12), y la ficha
- * recorre esta misma página con «anterior / siguiente». Los filtros viven en el
- * store, así que al volver siguen puestos.
+ * Es el único listado de docentes: absorbió el «Listado de inscritos», que
+ * pedía lo mismo a la misma ruta sin filtros ni ficha. Una fila abre su ficha
+ * (S12), y la ficha recorre esta misma página con «anterior / siguiente». Los
+ * filtros viven en el store, así que al volver siguen puestos.
  */
 const POR_PAGINA = 50
 const ESTADOS = ['APROBADO', 'CDR', 'REPROBADO', 'PENDIENTE']
@@ -27,13 +29,14 @@ const ESTATUS = ['activo', 'retirado', 'graduado']
 
 const filtros = () => ({
   q: state.s9Query.trim(),
+  cohorte: state.s9Cohorte,
   id_departamento: state.s9Dep,
   id_municipio: state.s9Mun,
   carrera: state.s9Carrera,
   estado: state.s9Estado,
   estatus: state.s9Estatus,
 })
-const { filas, total, paginas, pagina, cargando, error } = usaDocentes(filtros, POR_PAGINA)
+const { filas, total, paginas, pagina, cargando, error, todas } = usaDocentes(filtros, POR_PAGINA)
 
 // Geografía de la base, en cascada como en Sedes.
 const departamentos = ref([])
@@ -48,16 +51,46 @@ watch(() => state.s9Dep, async d => {
   municipios.value = d ? await lee(api.municipios(d)) : []
 })
 
-const hayFiltros = computed(() => !!(state.s9Query || state.s9Dep || state.s9Carrera || state.s9Estado || state.s9Estatus))
+const hayFiltros = computed(() => !!(state.s9Query || state.s9Cohorte || state.s9Dep || state.s9Carrera
+  || state.s9Estado || state.s9Estatus))
 
 const abre = d => openFicha(d.codigo_padep, { lista: filas.value.map(f => f.codigo_padep) })
 
 const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
+
+// --- Exportar: el filtro entero, no la página que se ve ---
+const exportando = ref(false)
+const COLUMNAS = ['codigo_padep', 'cui', 'nombre', 'sexo', 'cohorte', 'carrera', 'carrera_nombre',
+  'departamento', 'municipio', 'escalafon', 'estatus_academico', 'notas', 'aprobadas', 'cdr',
+  'reprobadas', 'promedio', 'asistencia_porcentaje']
+
+async function exporta() {
+  exportando.value = true
+  error.value = ''
+  try {
+    const filas_ = await todas()
+    const celda = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const csv = [COLUMNAS.join(','), ...filas_.map(f => COLUMNAS.map(k => celda(f[k])).join(','))].join('\r\n')
+    // BOM para que Excel lea bien las tildes.
+    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `docentes${state.s9Cohorte ? `_cohorte${state.s9Cohorte}` : ''}${state.s9Carrera ? `_car${state.s9Carrera}` : ''}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 10000)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    exportando.value = false
+  }
+}
 </script>
 
 <template>
   <div>
-    <p class="eyebrow eyebrow--plain">Registro Inicial (Docente)</p>
+    <p class="eyebrow eyebrow--plain">Docentes</p>
     <h1 class="page-title">Búsqueda y Consulta de Docentes</h1>
     <p class="page-sub">Buscar y filtrar los docentes cargados en la base. Haz clic en una fila para abrir su ficha.</p>
 
@@ -74,6 +107,15 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
         <label class="field field--tight filtros__q">
           <span class="field__label">Nombre, código PADEP o CUI</span>
           <input v-model="state.s9Query" class="input" type="search" placeholder="Buscar…">
+        </label>
+        <label class="field field--tight">
+          <span class="field__label">Cohorte</span>
+          <select v-model="state.s9Cohorte" class="select">
+            <option value="">Todas</option>
+            <option v-for="c in state.cohortes ?? []" :key="c.codigo" :value="c.codigo">
+              Cohorte {{ c.codigo }}{{ c.nombre ? ` · ${c.nombre}` : '' }}
+            </option>
+          </select>
         </label>
         <label class="field field--tight">
           <span class="field__label">Departamento</span>
@@ -112,8 +154,11 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
         </label>
       </div>
 
-      <footer v-if="hayFiltros" class="filtros__foot">
-        <button class="btn btn--ghost btn--sm" @click="clearFiltrosDocentes">Limpiar filtros</button>
+      <footer class="filtros__foot">
+        <button v-if="hayFiltros" class="btn btn--ghost btn--sm" @click="clearFiltrosDocentes">Limpiar filtros</button>
+        <button class="btn btn--outline btn--sm" :disabled="exportando || total === 0" @click="exporta">
+          {{ exportando ? 'Exportando…' : 'Exportar CSV' }}
+        </button>
       </footer>
     </section>
 
@@ -171,7 +216,7 @@ const pct = (v) => v == null ? '—' : `${Math.round(v)} %`
 .filtros__q { grid-column: 1 / -1; }
 @media (max-width: 720px) { .filtros__grid { grid-template-columns: 1fr; } }
 .field--tight { margin-bottom: 0; }
-.filtros__foot { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-3); }
+.filtros__foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-3); }
 .btn--sm { height: 36px; padding: 0 12px; font-size: 13px; }
 
 .is-clickable { cursor: pointer; }

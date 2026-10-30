@@ -2,47 +2,40 @@
 import { computed } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { MOD1_STEPS } from '@/data/catalog'
-import { etiquetaCarrera } from '@/data/carreras'
 import Icono from '@/components/Icono.vue'
 
 const { state, checklist, nextStepId, enlacesCount, goTo, navVisible } = usePadep()
 
-// El corte no trae año: sus campos son cohorte, carrera, trimestre y corte. El
-// año vive en `anio_pago`, que solo se sabe después de cargar a la base, así
-// que aquí se enseña el trimestre, que sí viene siempre.
-
-// «Continuar» es el paso siguiente del asistente (Cohorte → Sedes → Enlaces),
-// no el primer paso pendiente: ese podía ser la pantalla actual y el botón no
-// hacía nada. Antes salía de la lista del menú, y desde Enlaces mandaba al
-// Catálogo de Carreras, que no es un paso. Después de Enlaces viene Extracción,
-// si la sesión puede verla.
+// «Continuar» es el paso siguiente del asistente (Carreras → Cohorte → Sedes →
+// Enlaces), no el primer paso pendiente: ese podía ser la pantalla actual y el
+// botón no hacía nada. Después de Enlaces viene Extracción, si la sesión puede
+// verla.
 const puedeExtraccion = computed(() => navVisible.value.some(m => m.screens.some(s => s.id === 15)))
 const siguiente = computed(() => {
-  const paso = MOD1_STEPS.find(s => s.id === state.active + 1)
-  if (paso) return { id: paso.id, title: { 2: 'Sedes y Centros Educativos', 3: 'Asignación de Enlaces' }[paso.id] ?? paso.label }
-  return null
+  const i = MOD1_STEPS.findIndex(s => s.id === state.active)
+  return i === -1 ? null : MOD1_STEPS[i + 1] ?? null
 })
 const sinEnlace = computed(() => state.sedes.length - enlacesCount.value)
-const estado = computed(() =>
-  nextStepId.value === null ? 'Módulo completo'
-    : nextStepId.value === 3 ? `${sinEnlace.value} ${sinEnlace.value === 1 ? 'sede' : 'sedes'} sin enlace`
-      : `Pendiente: ${checklist.value[nextStepId.value - 1].label.toLowerCase()}`)
+const estado = computed(() => {
+  if (nextStepId.value === null) return 'Módulo completo'
+  if (nextStepId.value === 3) return `${sinEnlace.value} ${sinEnlace.value === 1 ? 'sede' : 'sedes'} sin enlace`
+  const i = MOD1_STEPS.findIndex(s => s.id === nextStepId.value)
+  return `Pendiente: ${checklist.value[i].label.toLowerCase()}`
+})
 </script>
 
 <template>
   <div class="stack">
     <section class="card card--flat ctx">
-      <!-- Es el corte EN USO (el marcado en Alta de Cohorte), no lo que esté
-           escrito en el formulario de alta nueva: con «Resumen de cohorte» se
-           leía como el resumen del formulario y el trimestre no cuadraba. -->
-      <p class="ctx__eyebrow">Corte en uso</p>
+      <!-- La cohorte EN USO (la marcada en Cohortes), no la que esté escrita
+           en el formulario de alta nueva. -->
+      <p class="ctx__eyebrow">Cohorte en uso</p>
       <p class="ctx__codigo mono">
-        {{ state.cohorte.codigo ? `Cohorte ${state.cohorte.codigo}` : 'Sin alta' }}
+        {{ state.cohorte.codigo ? `Cohorte ${state.cohorte.codigo}` : 'Sin elegir' }}
       </p>
       <dl class="ctx__list">
-        <template v-if="state.cohorte.codigo">
-          <dt>Carrera</dt><dd>{{ etiquetaCarrera(state.cohorte.carrera) }}</dd>
-          <dt>Trimestre</dt><dd>{{ state.cohorte.trimestre }}</dd>
+        <template v-if="state.cohorte.nombre">
+          <dt>Nombre</dt><dd>{{ state.cohorte.nombre }}</dd>
         </template>
         <dt>Sedes</dt><dd>{{ state.sedes.length }}</dd>
         <dt>Enlaces asignados</dt>

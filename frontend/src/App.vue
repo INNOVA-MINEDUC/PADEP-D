@@ -13,7 +13,6 @@ import S01AltaCohorte from '@/screens/S01AltaCohorte.vue'
 import S02Sedes from '@/screens/S02Sedes.vue'
 import S03Enlaces from '@/screens/S03Enlaces.vue'
 import S04Carreras from '@/screens/S04Carreras.vue'
-import S08ListadoInscritos from '@/screens/S08ListadoInscritos.vue'
 import S09BusquedaDocentes from '@/screens/S09BusquedaDocentes.vue'
 import S10SeguimientoEstatus from '@/screens/S10SeguimientoEstatus.vue'
 import S11ComparacionNominas from '@/screens/S11ComparacionNominas.vue'
@@ -24,6 +23,7 @@ import S15Extraccion from '@/screens/S15Extraccion.vue'
 import S16Curador from '@/screens/S16Curador.vue'
 import S17Usuarios from '@/screens/S17Usuarios.vue'
 import S18Unidades from '@/screens/S18Unidades.vue'
+import S19Bitacora from '@/screens/S19Bitacora.vue'
 
 const { state, currentModule, crumbScreen, restauraSesion } = usePadep()
 
@@ -31,20 +31,15 @@ const { state, currentModule, crumbScreen, restauraSesion } = usePadep()
 onMounted(restauraSesion)
 
 /**
- * Mapa pantalla → componente. Los ids conservan la numeración del prototipo,
- * con huecos: 6 nunca existió (el 4 lo ocupó después el catálogo de
- * carreras), y 5 y 7 se retiraron al centralizar
- * la extracción en el módulo 5 (subían un archivo de mentira y pintaban SEED;
- * lo que de verdad extraen esos documentos es S15). El 10 era otro de esos y
- * hoy es el seguimiento de estatus. Al montar vue-router, esto
- * se vuelve el array de rutas casi sin cambios.
+ * Mapa pantalla → componente. Los ids son estables (no se renumeran al retirar
+ * una pantalla), así que tienen huecos; el orden del menú lo da `NAV`, no el
+ * id. Al montar vue-router, esto se vuelve el array de rutas casi sin cambios.
  */
 const SCREENS = {
   1: S01AltaCohorte,
   2: S02Sedes,
   3: S03Enlaces,
   4: S04Carreras,
-  8: S08ListadoInscritos,
   9: S09BusquedaDocentes,
   10: S10SeguimientoEstatus,
   11: S11ComparacionNominas,
@@ -55,13 +50,11 @@ const SCREENS = {
   16: S16Curador,
   17: S17Usuarios,
   18: S18Unidades,
+  19: S19Bitacora,
 }
 
 // `active` null = la sesión no puede ver ninguna pantalla (un rol sin permisos).
 const currentScreen = computed(() => SCREENS[state.active] ?? null)
-
-// Pantallas que todavía pintan datos de ejemplo (`maqueta` en el catálogo).
-const esMaqueta = computed(() => currentModule.value.screens.some(s => s.id === state.active && s.maqueta))
 </script>
 
 <template>
@@ -87,14 +80,6 @@ const esMaqueta = computed(() => currentModule.value.screens.some(s => s.id === 
         </nav>
 
         <main class="shell__main">
-          <p v-if="esMaqueta" class="preview-banner" role="note">
-            <Icono nombre="aviso" :tam="18" />
-            <span>
-              <strong>Vista previa con datos de ejemplo.</strong>
-              Esta pantalla todavía no lee la base: los docentes, notas y totales que
-              aparecen aquí son inventados y no deben usarse para decidir nada.
-            </span>
-          </p>
           <!-- La unidad va en la key: al cambiarla en la cabecera la pantalla
                se remonta y vuelve a pedir lo suyo, ya de la unidad nueva. -->
           <component :is="currentScreen" v-if="currentScreen" :key="`${state.active}-${state.unidad}`" />

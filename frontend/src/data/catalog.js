@@ -1,19 +1,16 @@
 /**
- * Catálogo estático del prototipo: navegación y datos semilla. La geografía ya
- * sale de la API (`/departamentos`, `/municipios`), no de aquí.
+ * Navegación: módulos, pantallas y pasos del asistente de configuración. Los
+ * datos salen todos de la API; aquí solo está la forma del menú.
  */
 
 /**
- * Módulos y pantallas del sidebar. El id de pantalla es la ruta interna.
+ * Módulos y pantallas del sidebar. El id de pantalla es la ruta interna; el
+ * orden del menú es el de esta lista, no el del id.
  *
  * `permiso` es el que hace falta para VER la pantalla: uno, o una lista de la
  * que basta cualquiera. La API pide el suyo en cada ruta y devuelve 403 de
  * todos modos; esto es para no enseñar lo que no se va a poder usar. Un
  * módulo sin ninguna pantalla visible no sale.
- *
- * `maqueta: true` = la pantalla todavía pinta datos de ejemplo (`SEED`), no la
- * base. El menú le pone la etiqueta «Vista previa» y la pantalla un aviso,
- * para que nadie tome por reales un docente o un reporte inventados.
  *
  * `oculta: true` = pantalla de detalle: permitida, pero fuera del menú.
  *
@@ -22,25 +19,21 @@
  */
 export const NAV = [
   {
+    // Se hace una vez por cohorte, meses antes del primer PDF, y en este orden:
+    // la cohorte necesita su carrera registrada, las sedes su cohorte y los
+    // enlaces sus sedes. Nada de aquí depende de un corte.
     id: 'm1', num: 1, title: 'Configuración de Cohorte',
     screens: [
-      { id: 1, title: 'Alta de Cohorte', permiso: 'reportes.ver' },
+      { id: 4, title: 'Catálogo de Carreras', permiso: 'reportes.ver' },
+      { id: 1, title: 'Cohortes', permiso: 'reportes.ver' },
       { id: 2, title: 'Sedes y Centros Educativos', permiso: 'reportes.ver' },
       { id: 3, title: 'Asignación de Enlaces DIDEDUC', permiso: 'reportes.ver' },
-      // Junto al asistente y no dentro (no está en MOD1_STEPS): una carrera no
-      // es de ninguna cohorte, y la próxima puede volver a tener la 35 y la 36.
-      { id: 4, title: 'Catálogo de Carreras', permiso: 'reportes.ver' },
     ],
   },
-  // Los módulos 2 y 3 ya no cargan archivos: «Carga Inicial de Candidatos»,
-  // «Carga de Resultados de Admisión» y «Carga de Notas y Asistencia» (5, 7 y
-  // 10) se retiraron porque duplicaban la extracción del módulo 5 —los mismos
-  // documentos, pero con una subida simulada—. Aquí solo quedan las pantallas
-  // de consulta.
   {
-    id: 'm2', num: 2, title: 'Registro Inicial (Docente)',
+    // Un solo listado de docentes: buscar, filtrar, exportar y abrir la ficha.
+    id: 'm2', num: 2, title: 'Docentes',
     screens: [
-      { id: 8, title: 'Listado de Inscritos', permiso: 'reportes.ver' },
       { id: 9, title: 'Búsqueda y Consulta de Docentes', permiso: 'reportes.ver' },
     ],
   },
@@ -63,6 +56,7 @@ export const NAV = [
     ],
   },
   {
+    // Cada pago: se crea el corte, se suben nómina y PDF, se cura y se carga.
     id: 'm5', num: 5, title: 'Extracción y Carga',
     screens: [
       { id: 15, title: 'Extracción de Documentos', permiso: ['documentos.cargar', 'extraccion.ejecutar'] },
@@ -73,6 +67,7 @@ export const NAV = [
     id: 'm6', num: 6, title: 'Administración',
     screens: [
       { id: 17, title: 'Usuarios y Roles', permiso: 'usuarios.gestionar' },
+      { id: 19, title: 'Bitácora', permiso: 'bitacora.ver' },
       // Las unidades (organizaciones) las da de alta solo un global: un
       // usuario de unidad con el permiso sigue recibiendo 403.
       { id: 18, title: 'Unidades', permiso: 'unidades.gestionar', soloGlobal: true },
@@ -80,9 +75,14 @@ export const NAV = [
   },
 ]
 
-/** Pasos del stepper del módulo 1. */
+/**
+ * Pasos del asistente del módulo 1, en orden. `id` es la pantalla; el número
+ * que se pinta es la posición. Cada paso tiene su casilla en `checklist`, en
+ * el mismo orden.
+ */
 export const MOD1_STEPS = [
-  { id: 1, label: 'Cohorte' },
-  { id: 2, label: 'Sedes' },
-  { id: 3, label: 'Enlaces' },
+  { id: 4, label: 'Carreras', title: 'Catálogo de Carreras' },
+  { id: 1, label: 'Cohorte', title: 'Cohortes' },
+  { id: 2, label: 'Sedes', title: 'Sedes y Centros Educativos' },
+  { id: 3, label: 'Enlaces', title: 'Asignación de Enlaces' },
 ]

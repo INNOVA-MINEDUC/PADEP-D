@@ -11,9 +11,10 @@ defineProps({
 // la posición: estar en Enlaces no significa que haya sedes.
 const { checklist, goTo } = usePadep()
 
-function stepState(id, activeId) {
-  if (id === activeId) return 'is-current'
-  return checklist.value[id - 1].done ? 'is-done' : 'is-todo'
+// `id` es la pantalla, no la posición: el checklist va por posición.
+function stepState(step, i, activeId) {
+  if (step.id === activeId) return 'is-current'
+  return checklist.value[i].done ? 'is-done' : 'is-todo'
 }
 </script>
 
@@ -25,7 +26,7 @@ function stepState(id, activeId) {
         class="stepper__btn"
         :aria-current="step.id === activeId ? 'step' : undefined"
         @click="goTo(step.id)">
-        <span class="stepper__dot" :class="stepState(step.id, activeId)">{{ step.id }}</span>
+        <span class="stepper__dot" :class="stepState(step, i, activeId)">{{ i + 1 }}</span>
         <span class="stepper__label" :class="{ 'is-current': step.id === activeId }">{{ step.label }}</span>
       </button>
       <span
@@ -38,7 +39,7 @@ function stepState(id, activeId) {
 </template>
 
 <style scoped>
-.stepper { display: flex; align-items: center; gap: 4px; margin: 0 0 20px; padding: 0; max-width: 520px; list-style: none; }
+.stepper { display: flex; align-items: center; gap: 4px; margin: 0 0 20px; padding: 0; max-width: 640px; list-style: none; }
 .stepper__item { display: flex; align-items: center; gap: 4px; flex: 1; }
 .stepper__item:last-child { flex: 0 0 auto; }
 .stepper__btn {

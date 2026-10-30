@@ -39,7 +39,6 @@ export function usaCohorte() {
     }
   }
 
-  const creaCohorte = (campos) => escribe(() => api.creaCohorte(campos))
 
   // La escuela va por nombre: si ya existe en el municipio se reutiliza.
   const agregaSede = (campos) => escribe(c => api.agregaSede(c, campos))
@@ -77,6 +76,6 @@ export function usaCohorte() {
     'Borrar enlace', `¿Borrar a ${e.nombre}? No se puede deshacer.`, 'Borrar',
     () => escribe(() => api.borraEnlace(e.id_enlace)))
 
-  return { error, aviso, ocupado, carga, creaCohorte, agregaSede, quitaSede,
+  return { error, aviso, ocupado, carga, agregaSede, quitaSede,
     asigna, desasigna, guardaEnlace, borraEnlace }
 }

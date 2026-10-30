@@ -190,6 +190,13 @@ export const api = {
   creaUnidad: (codigo, nombre) => pide(`${RAIZ}/unidades`, json({ codigo, nombre })),
   editaUnidad: (codigo, campos) =>
     pide(`${RAIZ}/unidades/${encodeURIComponent(codigo)}`, json(campos, 'PUT')),
+
+  // Bitácora: quién hizo qué (`bitacora.ver`). Solo lectura; la escribe la API
+  // sola en cada escritura. La unidad la pone el servidor por quien pide.
+  bitacora: (filtros = {}) => pide(`${RAIZ}/bitacora${consulta(filtros)}`),
+  accionesBitacora: () => pide(`${RAIZ}/bitacora/acciones`),
+  exportaBitacora: (filtros = {}) =>
+    descarga(`${RAIZ}/bitacora/exportar${consulta(filtros)}`, 'bitacora.csv'),
 }
 
 /** `{a: 1, b: '', c: null}` -> `?a=1`. Un filtro vacio no se manda. */

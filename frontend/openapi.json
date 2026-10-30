@@ -4537,6 +4537,336 @@
           }
         }
       }
+    },
+    "/bitacora": {
+      "get": {
+        "tags": [
+          "bitácora"
+        ],
+        "summary": "Quién hizo qué: las escrituras anotadas, de la más nueva",
+        "description": "- `usuario`: parte del nombre o del correo.\n- `accion`: una de `GET /bitacora/acciones` («PUT /cortes/{id_corte}/correcciones»).\n- `objeto`: parte del objeto (el corte, el usuario, el rol...).\n- `desde` / `hasta`: días `AAAA-MM-DD`, en UTC; `hasta` incluye el día entero.\n- `resultado`: `ok` (< 400) o `error` (rechazadas).\n\nCada fila trae `accion` (el nombre de la ruta), `detalle` (lo que la ruta\nanotó: la celda y su valor anterior, el rol y sus permisos...) y `estado`\n(el código HTTP). `pendientes` cuenta las anotaciones que esperan en disco\na que la base vuelva: si no es 0, la lista todavía no está completa.",
+        "operationId": "listar_bitacora_get",
+        "parameters": [
+          {
+            "name": "usuario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usuario"
+            }
+          },
+          {
+            "name": "accion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Accion"
+            }
+          },
+          {
+            "name": "objeto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Objeto"
+            }
+          },
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Desde"
+            }
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hasta"
+            }
+          },
+          {
+            "name": "resultado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resultado"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Pagina"
+            }
+          },
+          {
+            "name": "por_pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Por Pagina"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Listar Bitacora Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bitacora/acciones": {
+      "get": {
+        "tags": [
+          "bitácora"
+        ],
+        "summary": "Las acciones que se pueden filtrar, con su nombre",
+        "operationId": "acciones_bitacora_acciones_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Acciones Bitacora Acciones Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          }
+        }
+      }
+    },
+    "/bitacora/exportar": {
+      "get": {
+        "tags": [
+          "bitácora"
+        ],
+        "summary": "La bitácora filtrada, en CSV",
+        "description": "Los mismos filtros que `GET /bitacora`, hasta 50 000 filas.",
+        "operationId": "exportar_bitacora_exportar_get",
+        "parameters": [
+          {
+            "name": "usuario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usuario"
+            }
+          },
+          {
+            "name": "accion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Accion"
+            }
+          },
+          {
+            "name": "objeto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Objeto"
+            }
+          },
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Desde"
+            }
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hasta"
+            }
+          },
+          {
+            "name": "resultado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resultado"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "sin sesión, caducada o cerrada: volver a entrar"
+          },
+          "403": {
+            "description": "el rol no tiene el permiso que pide la ruta"
+          },
+          "503": {
+            "description": "MySQL no responde. **No es una lista vacia**: aqui la base es lo unico que hay, a diferencia de `GET /cortes/{id}/carga`, que degrada a `disponible: false` porque alli es un extra."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

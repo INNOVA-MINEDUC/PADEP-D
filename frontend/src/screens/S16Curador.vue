@@ -2,17 +2,16 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
-import { usaCortes } from '@/composables/usaCortes'
+import { usaCortes, nombreCorte } from '@/composables/usaCortes'
 import { usaCurador } from '@/composables/usaCurador'
-import SelectorCorte from '@/components/SelectorCorte.vue'
 import BarraAvance from '@/components/BarraAvance.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import { pillClass, plural } from '@/utils/format'
 
 const { goTo } = usePadep()
-// El corte se comparte con la pantalla de extracción: es el mismo trabajo, y
-// las dos leen la misma llave de localStorage.
-const { lista: cortes, elegido, carga: cargaCortes, elige } = usaCortes()
+// El corte es el de la cabecera, el mismo que en Extracción: es el mismo
+// trabajo.
+const { corte, elegido, carga: cargaCortes } = usaCortes()
 const {
   datos, error, cargando, carga,
   hecha, escrita, resuelta, confirmable, confirma, confirmada, desconfirma,
@@ -121,7 +120,8 @@ onMounted(async () => {
       <div class="card__body">
         <div class="fila">
           <div class="fila__ancho">
-            <SelectorCorte :lista="cortes" :elegido="elegido" @elige="elige" />
+            <span class="field__label">Corte (se cambia en la cabecera)</span>
+            <p class="corte-actual">{{ corte ? nombreCorte(corte) : 'Todavía no hay ningún corte.' }}</p>
           </div>
           <label v-if="datos?.listo" class="field">
             <span class="field__label">Documento</span>
@@ -472,6 +472,7 @@ onMounted(async () => {
 .fila { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .fila > .field { flex: 1 1 12rem; min-width: 0; }
 .fila__ancho { flex: 2 1 18rem; min-width: 0; }
+.corte-actual { margin: 6px 0 18px; font-size: 14px; font-weight: 600; color: var(--ink); }
 .fila > .btn { margin-bottom: 18px; }
 
 .resumen { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; justify-content: space-between; }

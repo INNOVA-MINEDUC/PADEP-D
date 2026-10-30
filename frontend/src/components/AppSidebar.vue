@@ -41,7 +41,6 @@ const { state, navVisible, currentModuleIndex, toggleModule, goTo, cierraMenuMov
             :aria-current="state.active === scr.id ? 'page' : undefined"
             @click="goTo(scr.id)">
             {{ scr.title }}
-            <span v-if="scr.maqueta" class="sidebar__tag">Vista previa</span>
           </button>
         </div>
       </div>
@@ -112,10 +111,5 @@ const { state, navVisible, currentModuleIndex, toggleModule, goTo, cierraMenuMov
 .sidebar__screen.is-active {
   background: rgba(192,138,46,.18); color: var(--gold-soft);
   font-weight: 700; border-left-color: var(--gold);
-}
-.sidebar__tag {
-  display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: var(--r-pill);
-  font-size: 12px; font-weight: 600; line-height: 1.4; white-space: nowrap;
-  background: rgba(243,217,166,.14); color: var(--gold-soft);
 }
 </style>

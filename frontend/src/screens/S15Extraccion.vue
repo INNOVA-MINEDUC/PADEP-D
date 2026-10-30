@@ -3,20 +3,20 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
 import { usaAjustes } from '@/composables/usaAjustes'
-import { usaCortes } from '@/composables/usaCortes'
+import { usaCortes, nombreCorte } from '@/composables/usaCortes'
 import { usaSubida } from '@/composables/usaSubida'
 import { usaTrabajos } from '@/composables/usaTrabajos'
 import { usaEstadoCarga } from '@/composables/usaEstadoCarga'
-import SelectorCorte from '@/components/SelectorCorte.vue'
 import BarraAvance from '@/components/BarraAvance.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import { pillClass } from '@/utils/format'
 import { etiquetaCarrera } from '@/data/carreras'
 
-const { goTo, refrescaCohorte, registraCarrera } = usePadep()
+const { state, esGlobal, goTo, registraCarrera, cargaCohortes } = usePadep()
 const { puedeExtraer, trozo, tipos, carga: cargaAjustes } = usaAjustes()
+// El corte se elige en la cabecera; aquí solo se crea uno nuevo.
 const {
-  lista: cortes, elegido, corte, puedeEntregar, puedeCargar, extraidos,
+  elegido, corte, puedeEntregar, puedeCargar, extraidos,
   carga: cargaCortes, elige,
 } = usaCortes()
 const { subiendo, avance, error: errorSubida, pideForzar, envia } = usaSubida(elegido, trozo)
@@ -108,9 +108,54 @@ async function conError(fn) {
   refresca()
 }
 
-// El sidebar y las pantallas de consulta enseñan la cohorte del corte elegido,
-// y no piden cortes por su cuenta: hay que avisarlas al cambiar.
-const cambia = (id) => { elige(id); refrescaCohorte() }
+/*
+ * Nuevo corte: la carpeta de un pago, con cuatro datos —cohorte, carrera,
+ * trimestre y corte—. El id lo arma el servidor: `digecade-11-car35-t6-c1`.
+ *
+ * Crear es idempotente: `POST /cortes` sobre uno que ya existe devuelve su
+ * estado en vez de un error, así que reenviar el formulario lo selecciona.
+ * El `corte` va fijo en 1 y escondido: fijarlo es lo que hace que reenviar
+ * reseleccione en vez de crear otro. NO se calcula con `hermanos.length + 1`:
+ * eso crearía un corte 2 vacío cada vez que alguien reenvía el formulario.
+ */
+const formCorte = ref(null)
+const corteVisible = ref(false)
+// El desplegable de carrera sale del catálogo (`GET /carreras`). Si la base no
+// responde, el formulario sigue: crear un corte es una carpeta en disco y
+// `POST /cortes` no mira MySQL, así que se cambia por un campo de dígitos.
+const carreras = ref(null)
+const sinCatalogo = ref(false)
+
+function abreNuevoCorte() {
+  corteVisible.value = false
+  formCorte.value = {
+    cohorte: state.cohorte.codigo || corte.value?.cohorte || '',
+    carrera: corte.value?.carrera || '',
+    // El siguiente pago suele ser el trimestre siguiente al del corte en uso.
+    trimestre: corte.value ? Math.min(12, corte.value.trimestre + 1) : 1,
+    corte: 1,
+  }
+  if (!carreras.value) {
+    api.carreras()
+      .then(l => { carreras.value = l; sinCatalogo.value = false })
+      .catch(() => { sinCatalogo.value = true })
+  }
+}
+
+const creaCorte = () => conError(async () => {
+  const d = await api.creaCorte({ ...formCorte.value })
+  await cargaCortes()
+  elige(d.id)
+  formCorte.value = null
+  // Un corte de una cohorte que la base no tiene la da de alta, sin nombre
+  // (lo rellena la primera carga). El 409 —ya existía— es el caso normal. Si
+  // MySQL falla, el corte ya está creado: la cohorte se puede dar de alta
+  // después en Cohortes.
+  if (!(state.cohortes ?? []).some(c => c.codigo === d.cohorte)) {
+    await api.creaCohorte({ codigo: d.cohorte }).catch(() => {})
+    cargaCohortes(d.cohorte)
+  }
+})
 
 const subeNomina = () => conError(async () => {
   if (!nomina.value) throw new Error('Elige un archivo .xlsx.')
@@ -261,31 +306,73 @@ onMounted(async () => {
       <div class="card__head">Corte</div>
       <div class="card__body">
         <p class="nota">
-          Todo lo que se sube y todo lo que sale vive en la carpeta de su corte.
-          Hay que elegirlo antes de subir nada.
+          Todo lo que se sube y todo lo que sale vive en la carpeta de su corte: la
+          carrera y el trimestre de un pago. Se cambia arriba, en la cabecera.
         </p>
 
         <div class="fila">
-          <div class="fila__ancho">
-            <SelectorCorte :lista="cortes" :elegido="elegido" @elige="cambia" />
-          </div>
-          <!-- El alta vive en el módulo 1: aquí solo se elige sobre cuál
-               trabajar. Antes el formulario estaba en esta pantalla, y era el
-               único sitio de la aplicación donde se creaba algo de verdad. -->
-          <button class="btn btn--outline" @click="goTo(1)">Nueva alta…</button>
+          <p class="fila__ancho corte-actual">
+            <template v-if="corte">{{ nombreCorte(corte) }}</template>
+            <template v-else>Todavía no hay ningún corte.</template>
+          </p>
+          <button v-if="!formCorte" class="btn btn--outline" @click="abreNuevoCorte">Nuevo corte…</button>
         </div>
 
-        <p v-if="!corte" class="nota">
-          No hay ninguno.
-          <button type="button" class="btn-link" @click="goTo(1)">
-            Crea el primero en Alta de Cohorte →
-          </button>
-        </p>
-        <template v-else>
-          <p class="nota">
-            {{ etiquetaCarrera(corte.carrera) }} · trimestre {{ corte.trimestre }}
-            <template v-if="corte.corte !== 1"> · corte {{ corte.corte }}</template>
+        <form v-if="formCorte" class="nuevo-corte" @submit.prevent="creaCorte">
+          <p v-if="esGlobal" class="nota">
+            Se crea en la unidad <strong class="mono">{{ state.unidad || '—' }}</strong>.
           </p>
+          <div class="fila">
+            <label class="field">
+              <span class="field__label">Cohorte</span>
+              <!-- De la base si responde; si no, a mano (el corte es una
+                   carpeta en disco y no necesita MySQL). -->
+              <select v-if="state.cohortes?.length" v-model="formCorte.cohorte" class="select" required>
+                <option v-for="c in state.cohortes" :key="c.codigo" :value="c.codigo">
+                  Cohorte {{ c.codigo }}{{ c.nombre ? ` · ${c.nombre}` : '' }}
+                </option>
+              </select>
+              <input v-else v-model.trim="formCorte.cohorte" class="input mono" required
+                     inputmode="numeric" pattern="[0-9]+" title="Solo dígitos">
+            </label>
+            <label v-if="sinCatalogo" class="field">
+              <span class="field__label">Carrera (código)</span>
+              <input v-model.trim="formCorte.carrera" class="input mono" required
+                     inputmode="numeric" pattern="[0-9]+" title="Solo dígitos">
+            </label>
+            <label v-else class="field">
+              <span class="field__label">Carrera</span>
+              <select v-model="formCorte.carrera" class="select" required :disabled="!carreras">
+                <option v-if="!carreras" :value="formCorte.carrera">Consultando…</option>
+                <option v-for="c in carreras" :key="c.codigo" :value="c.codigo">
+                  {{ c.codigo }} — {{ c.nombre }}
+                </option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field__label">Trimestre (1-12)</span>
+              <input v-model.number="formCorte.trimestre" class="input" type="number" min="1" max="12" required>
+            </label>
+            <label v-if="corteVisible" class="field">
+              <span class="field__label">Corte</span>
+              <input v-model.number="formCorte.corte" class="input" type="number" min="1" required>
+            </label>
+          </div>
+          <p v-if="sinCatalogo" class="nota">No se pudo leer el catálogo; escribe el código de la carrera.</p>
+          <div class="btn-row">
+            <button class="btn btn--primary" type="submit"
+                    :disabled="ocupado || (!carreras && !sinCatalogo) || (esGlobal && !state.unidad)">Crear corte</button>
+            <button type="button" class="btn btn--outline" @click="formCorte = null">Cancelar</button>
+            <button type="button" class="btn-link" @click="registraCarrera()">¿No está la carrera? Regístrala →</button>
+            <!-- Salida de emergencia por si algún día hay dos entregas en el
+                 mismo trimestre. -->
+            <button v-if="!corteVisible" type="button" class="btn-link" @click="corteVisible = true">
+              Otra entrega en el mismo trimestre →
+            </button>
+          </div>
+        </form>
+
+        <template v-if="corte">
           <p class="nota">
             <!-- La carpeta queda a un pase de ratón: es dato técnico. -->
             <span :title="`Carpeta: ${corte.carpeta}`">{{ extraidos }} de 5 documentos extraídos</span> ·
@@ -622,6 +709,11 @@ onMounted(async () => {
 .fila { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .fila > .field { flex: 1 1 14rem; min-width: 0; }
 .fila__ancho { flex: 2 1 18rem; min-width: 0; }
+.corte-actual { margin: 0 0 18px; font-size: 15px; font-weight: 600; color: var(--ink); }
+.nuevo-corte {
+  margin: 0 0 16px; padding: 16px; border: 1px solid var(--border-2);
+  border-radius: var(--r-md); background: var(--bg-soft);
+}
 .fila > .btn { margin-bottom: 18px; }
 
 .falta { margin: 0 0 12px; padding-left: 20px; font-size: 13px; color: var(--warning); }

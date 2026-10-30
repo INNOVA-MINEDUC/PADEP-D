@@ -1,17 +1,16 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { usePadep } from '@/stores/padep'
-import { usaCortes } from '@/composables/usaCortes'
+import { usaCortes, nombreCorte as nombreLargo } from '@/composables/usaCortes'
 import { usaComparacion } from '@/composables/usaComparacion'
-import SelectorCorte from '@/components/SelectorCorte.vue'
 import AvisoError from '@/components/AvisoError.vue'
 import { pillClass, plural } from '@/utils/format'
 
 const { puede, openFicha } = usePadep()
 
-// El corte que se revisa se comparte con las otras pantallas (misma llave de
-// localStorage): normalmente es el último que se entregó.
-const { lista: cortes, elegido, carga: cargaCortes, elige } = usaCortes()
+// El corte que se revisa es el de la cabecera: normalmente el último que se
+// entregó.
+const { lista: cortes, elegido, carga: cargaCortes } = usaCortes()
 // '' = el anterior de la misma carrera, que decide la API.
 const contra = ref('')
 const { datos, error, cargando, guardando, carga, marca, clave, marcadas } =
@@ -136,7 +135,8 @@ onMounted(async () => {
       <div class="card__body">
         <div class="fila">
           <div class="fila__ancho">
-            <SelectorCorte :lista="cortes" :elegido="elegido" @elige="elige" />
+            <span class="field__label">Corte (se cambia en la cabecera)</span>
+            <p class="corte-actual">{{ elegidoCorte ? nombreLargo(elegidoCorte) : 'Todavía no hay ningún corte.' }}</p>
           </div>
           <label class="field">
             <span class="field__label">Comparar contra</span>
@@ -273,6 +273,7 @@ onMounted(async () => {
 .bloque { margin-bottom: 16px; }
 .fila { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
 .fila__ancho { flex: 1 1 320px; }
+.corte-actual { margin: 6px 0 10px; font-size: 14px; font-weight: 600; color: var(--ink); }
 .nota { margin: 14px 0 8px; font-size: 14px; color: var(--text); }
 .resumen { display: flex; flex-wrap: wrap; gap: 8px; }
 .cabeza-tabla { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }

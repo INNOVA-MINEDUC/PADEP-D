@@ -7,8 +7,9 @@
  * —una tilde distinta daba dos veces la misma carrera— y el trabajo termina
  * `fallido` si no la encuentra por código.
  *
- * Va junto al asistente de cohorte y no dentro: una carrera no es de ninguna
- * cohorte. Por eso no lleva `ModuleStepper` ni `CohorteContext`.
+ * Es el primer paso del asistente: la cohorte y sus cortes la necesitan
+ * registrada. No lleva `CohorteContext`: una carrera no es de ninguna cohorte
+ * y sirve para varias.
  *
  * Los `detail` de la API se enseñan tal cual: ya vienen pensados para quien
  * opera (409 por duplicado o por datos cargados, 422, 404). El 503 es «la base
@@ -19,6 +20,7 @@ import { usePadep } from '@/stores/padep'
 import { api } from '@/api/extraccion'
 import AvisoError from '@/components/AvisoError.vue'
 import Icono from '@/components/Icono.vue'
+import ModuleStepper from '@/components/ModuleStepper.vue'
 import { fijaCatalogo } from '@/data/carreras'
 
 const { state, pideConfirmacion } = usePadep()
@@ -129,6 +131,8 @@ const borra = (c) => pideConfirmacion(
 
 <template>
   <div>
+    <ModuleStepper :active-id="4" />
+
     <p class="eyebrow eyebrow--plain">Configuración de Cohorte</p>
     <h1 class="page-title">Catálogo de Carreras</h1>
     <p class="page-sub">

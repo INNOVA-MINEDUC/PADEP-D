@@ -27,8 +27,8 @@ const CORTOS = {
 
 export const CARRERAS = reactive({ ...CORTOS.digecade })
 
-// Códigos que trae la base. Antes de leerla, null: no se sabe, y las pestañas
-// de S08 siguen enseñando las de arriba.
+// Códigos que trae la base. Antes de leerla, null: no se sabe. Es lo que marca
+// hecho el paso «Carreras» del asistente.
 export const enBase = reactive({ codigos: null })
 
 /** Vacía la lista y deja solo los nombres cortos de esa unidad (si los tiene). */
